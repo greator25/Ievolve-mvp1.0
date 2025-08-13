@@ -1,0 +1,125 @@
+You are an expert full-stack web application developer. Build a complete, production-ready "Ievolve Event Management System" exactly according to the following Software Requirements Specification (SRS). The application must be:
+
+Web-based, responsive, and mobile-friendly.
+
+Built using a backend framework (Node.js) and a frontend framework (React).
+
+Use a relational database (PostgreSQL or MySQL) with Sequelize/TypeORM/SQLAlchemy as ORM.
+
+Provide clean and modular MVC architecture.
+
+Include authentication, role-based access control, data validations, and secure OTP-based login (with Twilio or similar for SMS).
+
+Have both Admin and Team Coach dashboards with the exact features described.
+
+Follow these requirements exactly:
+
+1. User Roles
+Ievolve Admin:
+
+Full web access.
+
+Can upload Hotel Inventory Sheets, Coach & Official Data Sheets, and Player Data Sheets.
+
+Manage accommodations, check-ins, checkouts, hotel reassignments, and view analytics dashboards.
+
+Manual reassignment of hotels with Booking Reference updates.
+
+Team Coach:
+
+Login via mobile number + OTP.
+
+Can view players under their management.
+
+Initiate check-in and early checkout for players (validations apply).
+
+Receives notifications when Admin changes bookings.
+
+Player:
+
+No login, details are managed by the coach.
+
+Official:
+
+No system check-in; used for inventory planning only.
+
+2. Data Upload & Validation
+Hotel Inventory Sheet: Enforce unique (HotelID, InstanceCode) combination. No overlapping date ranges for the same HotelID. Allow ad-hoc trans_ hotels.
+
+Coach & Official Sheet: Auto-create Team Coach user accounts (no duplicates). Fields: ROLE, COACH_id/OFFICIAL_id, Name, Mobile, Discipline, Hotel_ID, Hotel_Name, Stadium, Booking_Start_Date, Booking_End_Date, Booking_Reference_Number (R_, TPRE_, or TPRO_), Transport POC.
+
+Player Sheet: COACH_ID, PlayerID, Player_Name, Mobile (optional), Discipline, District, Team_Name, Location, Hotel_ID, Booking_Reference (R_, TPRE_, TPRO_).
+
+Reject uploads that:
+
+Reference a non-existent HotelID from inventory
+
+Have bookings less than 3 days
+
+3. Accommodation Management
+Admin can view/edit/delete all records.
+
+Coaches can check in/out only their players.
+
+Admin handles all transit bookings and early/late stays (tracked for reports).
+
+Implement room estimation logic:
+
+1 room per 3 players
+
+1 room per 2 coaches
+
+1 room per official
+
+Track check-in/check-out timestamps + count.
+
+Hotel reassignment creates new Booking Reference (R_ prefix) linked to original. No tracking for reassigned check-ins.
+
+4. Notifications
+SMS via backend when:
+
+Coach Check-in → Send to Transport POC (FR-3.5) with Coach ID + number of players.
+
+Admin Early Checkout Initiated → Inform coach and players with registered numbers (updated date).
+
+5. Dashboards & Reporting
+Admin Dashboard:
+
+Daily vacant rooms, check-in status, occupancy tracking.
+
+Tabular view of bookings with filters: Team, Player Name, Mobile, Location, District, Discipline, Date.
+
+Export to CSV.
+
+Coach Dashboard:
+
+Players and their accommodations + Booking_reference_code.
+
+6. Technical Requirements
+OTP authentication API
+
+Data import APIs for all three sheets (CSV upload + validation)
+
+Secure file storage for uploads
+
+REST API endpoints for all CRUD operations
+
+Database migrations + seeders for test data
+
+Error handling & input sanitization
+
+Deployment-ready Dockerfile + README
+
+Deliverables within Replit:
+
+Full backend & frontend source code.
+
+Database schema matching all fields.
+
+API documentation (Swagger/OpenAPI).
+
+Example CSV templates for uploads.
+
+Sample test cases (unit + integration).
+
+Build this end-to-end as a single runnable project in Replit.
