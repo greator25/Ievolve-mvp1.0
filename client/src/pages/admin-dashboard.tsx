@@ -13,7 +13,7 @@ import StatsCards from "@/components/stats-cards";
 import UploadModal from "@/components/upload-modal";
 import ParticipantTable from "@/components/participant-table";
 import HotelCards from "@/components/hotel-cards";
-import type { DashboardStats, User as UserType } from "@/lib/types";
+import type { DashboardStats } from "@/lib/types";
 
 export default function AdminDashboard() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function AdminDashboard() {
     queryKey: ["/api/auth/me"],
   });
 
-  const user = authData?.user as UserType;
+  const user = authData?.user;
 
   // Get dashboard statistics
   const { data: stats, isLoading: statsLoading } = useQuery({

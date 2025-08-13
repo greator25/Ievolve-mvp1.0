@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import type { Hotel } from "@/lib/types";
+import { Hotel } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 
 export default function HotelCards() {
@@ -48,7 +48,7 @@ export default function HotelCards() {
   }
 
   // Group hotels by hotelId and show the most recent instance
-  const hotelGroups = hotels.reduce((acc: Record<string, Hotel>, hotel: Hotel) => {
+  const hotelGroups = (hotels as Hotel[]).reduce((acc: Record<string, Hotel>, hotel: Hotel) => {
     if (!acc[hotel.hotelId] || new Date(hotel.startDate) > new Date(acc[hotel.hotelId].startDate)) {
       acc[hotel.hotelId] = hotel;
     }
@@ -99,7 +99,7 @@ export default function HotelCards() {
                     </div>
                   </div>
                   <Badge 
-                    variant={status.variant} 
+                    variant="default"
                     className={`
                       ${status.variant === 'warning' ? 'bg-warning-100 text-warning-800' : ''}
                       ${status.variant === 'success' ? 'bg-success-100 text-success-800' : ''}

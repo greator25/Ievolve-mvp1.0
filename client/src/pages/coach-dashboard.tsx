@@ -9,7 +9,7 @@ import { logout } from "@/lib/auth";
 import { 
   Calendar, LogOut, Phone, LogIn, Users as UsersIcon
 } from "lucide-react";
-import type { Participant, User as UserType } from "@/lib/types";
+import type { Participant } from "@/lib/types";
 
 interface CoachDashboardData {
   coach: Participant;
@@ -26,7 +26,7 @@ export default function CoachDashboard() {
     queryKey: ["/api/auth/me"],
   });
 
-  const user = authData?.user as UserType;
+  const user = authData?.user;
 
   // Get coach dashboard data
   const { data: dashboardData, isLoading } = useQuery({

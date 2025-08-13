@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/logout", requireAuth, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = req.session.user!.id;
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await UploadService.uploadHotelInventory(content);
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "upload",
         targetEntity: "hotel",
         details: { type: "hotel_inventory", result },
@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await UploadService.uploadCoachesOfficials(content);
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "upload",
         targetEntity: "participant",
         details: { type: "coaches_officials", result },
@@ -223,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await UploadService.uploadPlayers(content);
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "upload",
         targetEntity: "participant",
         details: { type: "players", result },
@@ -267,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Coach dashboard routes
   app.get("/api/coach/dashboard", requireCoach, async (req, res) => {
     try {
-      const coachId = req.session.user.coachId;
+      const coachId = req.session.user!.coachId;
       if (!coachId) {
         return res.status(400).json({ message: "Coach ID not found" });
       }
@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/coach/checkin", requireCoach, async (req, res) => {
     try {
       const { participantIds } = checkinSchema.parse(req.body);
-      const coachId = req.session.user.coachId;
+      const coachId = req.session.user!.coachId;
       
       if (!coachId) {
         return res.status(400).json({ message: "Coach ID not found" });
@@ -330,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "checkin",
         targetEntity: "participant",
         details: { participantIds, checkedInCount: checkedInParticipants.length },
@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/coach/checkout", requireCoach, async (req, res) => {
     try {
       const { participantIds, newCheckoutDate } = checkoutSchema.parse(req.body);
-      const coachId = req.session.user.coachId;
+      const coachId = req.session.user!.coachId;
       
       if (!coachId) {
         return res.status(400).json({ message: "Coach ID not found" });
@@ -389,7 +389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "checkout",
         targetEntity: "participant",
         details: { participantIds, checkedOutCount: checkedOutParticipants.length, newCheckoutDate },
@@ -454,7 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "early_checkout",
         targetEntity: "participant",
         details: { participantIds, newCheckoutDate, notificationsSent: notifications.length },
@@ -491,7 +491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "edit",
         targetEntity: "participant",
         targetId: req.params.id,
@@ -512,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.createAuditLog({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         actionType: "delete",
         targetEntity: "participant",
         targetId: req.params.id,

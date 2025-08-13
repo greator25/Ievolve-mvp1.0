@@ -5,7 +5,7 @@ import {
   type InsertReassignment, type AuditLog, type InsertAuditLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, or, like, desc, asc } from "drizzle-orm";
+import { eq, and, gte, lte, or, like, desc, asc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -139,7 +139,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteHotel(id: string): Promise<boolean> {
     const result = await db.delete(hotels).where(eq(hotels.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getHotelsWithOverlappingDates(hotelId: string, startDate: Date, endDate: Date): Promise<Hotel[]> {
@@ -177,11 +177,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters.role) {
-      conditions.push(eq(participants.role, filters.role));
+      conditions.push(sql`${participants.role} = ${filters.role}`);
     }
 
     if (filters.checkinStatus) {
-      conditions.push(eq(participants.checkinStatus, filters.checkinStatus));
+      conditions.push(sql`${participants.checkinStatus} = ${filters.checkinStatus}`);
     }
 
     if (filters.hotelId) {
@@ -197,13 +197,12 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Sorting
-    const sortField = filters.sortBy || 'createdAt';
     const sortOrder = filters.sortOrder || 'desc';
     
     if (sortOrder === 'asc') {
-      query = query.orderBy(asc(participants[sortField as keyof typeof participants]));
+      query = query.orderBy(asc(participants.createdAt));
     } else {
-      query = query.orderBy(desc(participants[sortField as keyof typeof participants]));
+      query = query.orderBy(desc(participants.createdAt));
     }
 
     // Pagination
@@ -251,7 +250,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteParticipant(id: string): Promise<boolean> {
     const result = await db.delete(participants).where(eq(participants.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async bulkCreateParticipants(insertParticipants: InsertParticipant[]): Promise<Participant[]> {
@@ -315,22 +314,22 @@ export class DatabaseStorage implements IStorage {
     const checkedInParticipants = await db
       .select()
       .from(participants)
-      .where(eq(participants.checkinStatus, "checked_in"));
+      .where(sql`${participants.checkinStatus} = 'checked_in'`);
 
     // Get pending actions (participants with pending status)
     const pendingParticipants = await db
       .select()
       .from(participants)
-      .where(eq(participants.checkinStatus, "pending"));
+      .where(sql`${participants.checkinStatus} = 'pending'`);
 
     // Get hotel statistics
     const allHotels = await db.select().from(hotels);
     const totalAvailableRooms = allHotels.reduce((sum, hotel) => sum + hotel.availableRooms, 0);
 
     // Calculate estimated rooms needed (1 room per 3 players, 1 per 2 coaches, 1 per official)
-    const playerCount = totalParticipants.filter(p => p.role === 'player').length;
-    const coachCount = totalParticipants.filter(p => p.role === 'coach').length;
-    const officialCount = totalParticipants.filter(p => p.role === 'official').length;
+    const playerCount = totalParticipants.filter((p: any) => p.role === 'player').length;
+    const coachCount = totalParticipants.filter((p: any) => p.role === 'coach').length;
+    const officialCount = totalParticipants.filter((p: any) => p.role === 'official').length;
     
     const estimatedRoomsNeeded = Math.ceil(playerCount / 3) + Math.ceil(coachCount / 2) + officialCount;
 

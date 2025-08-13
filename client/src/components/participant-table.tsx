@@ -134,14 +134,14 @@ export default function ParticipantTable({ isAdmin = false, coachId }: Participa
               />
             </div>
             <Select
-              value={filters.discipline}
-              onValueChange={(value) => setFilters({ ...filters, discipline: value, page: 1 })}
+              value={filters.discipline || "all"}
+              onValueChange={(value) => setFilters({ ...filters, discipline: value === "all" ? "" : value, page: 1 })}
             >
               <SelectTrigger data-testid="select-discipline">
                 <SelectValue placeholder="All Disciplines" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Disciplines</SelectItem>
+                <SelectItem value="all">All Disciplines</SelectItem>
                 <SelectItem value="Football">Football</SelectItem>
                 <SelectItem value="Athletics">Athletics</SelectItem>
                 <SelectItem value="Swimming">Swimming</SelectItem>
@@ -149,28 +149,28 @@ export default function ParticipantTable({ isAdmin = false, coachId }: Participa
               </SelectContent>
             </Select>
             <Select
-              value={filters.checkinStatus}
-              onValueChange={(value) => setFilters({ ...filters, checkinStatus: value, page: 1 })}
+              value={filters.checkinStatus || "all"}
+              onValueChange={(value) => setFilters({ ...filters, checkinStatus: value === "all" ? "" : value, page: 1 })}
             >
               <SelectTrigger data-testid="select-status">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="checked_in">Checked In</SelectItem>
                 <SelectItem value="checked_out">Checked Out</SelectItem>
               </SelectContent>
             </Select>
             <Select
-              value={filters.role}
-              onValueChange={(value) => setFilters({ ...filters, role: value, page: 1 })}
+              value={filters.role || "all"}
+              onValueChange={(value) => setFilters({ ...filters, role: value === "all" ? "" : value, page: 1 })}
             >
               <SelectTrigger data-testid="select-role">
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Roles</SelectItem>
+                <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="coach">Coach</SelectItem>
                 <SelectItem value="official">Official</SelectItem>
                 <SelectItem value="player">Player</SelectItem>
