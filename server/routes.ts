@@ -1,0 +1,581 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import express from "express";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
+import { storage } from "./storage";
+import { AuthService } from "./services/auth";
+import { UploadService } from "./services/upload";
+import { NotificationService } from "./services/notification";
+import { 
+  loginSchema, uploadFileSchema, checkinSchema, checkoutSchema,
+  type User, type Participant 
+} from "@shared/schema";
+import multer from "multer";
+
+const PgSession = ConnectPgSimple(session);
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.mimetype === 'text/plain' || file.originalname.endsWith('.psv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV and PSV files are allowed'));
+    }
+  },
+});
+
+declare module 'express-session' {
+  interface SessionData {
+    user: User;
+  }
+}
+
+// Middleware to check authentication
+const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  next();
+};
+
+// Middleware to check admin role
+const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+};
+
+// Middleware to check coach role
+const requireCoach = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.session.user || req.session.user.role !== "coach") {
+    return res.status(403).json({ message: "Coach access required" });
+  }
+  next();
+};
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Session configuration
+  app.use(session({
+    store: new PgSession({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  }));
+
+  // Initialize default admin
+  await AuthService.createDefaultAdmin();
+
+  // Authentication routes
+  app.post("/api/auth/admin/login", async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password required" });
+      }
+
+      const user = await AuthService.loginAdmin(email, password);
+      req.session.user = user;
+      
+      await storage.createAuditLog({
+        userId: user.id,
+        actionType: "login",
+        targetEntity: "user",
+        targetId: user.id,
+        details: { method: "admin_login", email },
+      });
+
+      res.json({ user: { id: user.id, name: user.name, role: user.role } });
+    } catch (error) {
+      res.status(401).json({ message: error instanceof Error ? error.message : "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/coach/request-otp", async (req, res) => {
+    try {
+      const { mobileNumber } = loginSchema.parse(req.body);
+      
+      if (!mobileNumber) {
+        return res.status(400).json({ message: "Mobile number required" });
+      }
+
+      const result = await AuthService.sendOTP(mobileNumber);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to send OTP" });
+    }
+  });
+
+  app.post("/api/auth/coach/verify-otp", async (req, res) => {
+    try {
+      const { mobileNumber, otp } = loginSchema.parse(req.body);
+      
+      if (!mobileNumber || !otp) {
+        return res.status(400).json({ message: "Mobile number and OTP required" });
+      }
+
+      const user = await AuthService.verifyOTP(mobileNumber, otp);
+      req.session.user = user;
+
+      await storage.createAuditLog({
+        userId: user.id,
+        actionType: "login",
+        targetEntity: "user",
+        targetId: user.id,
+        details: { method: "otp_login", mobileNumber },
+      });
+
+      res.json({ user: { id: user.id, name: user.name, role: user.role, coachId: user.coachId } });
+    } catch (error) {
+      res.status(401).json({ message: error instanceof Error ? error.message : "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", requireAuth, async (req, res) => {
+    const userId = req.session.user.id;
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Get current user
+  app.get("/api/auth/me", (req, res) => {
+    if (req.session.user) {
+      const { id, name, role, coachId } = req.session.user;
+      res.json({ user: { id, name, role, coachId } });
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  // Data upload routes (Admin only)
+  app.post("/api/admin/upload/hotel-inventory", requireAdmin, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File is required" });
+      }
+
+      const content = req.file.buffer.toString('utf-8');
+      const result = await UploadService.uploadHotelInventory(content);
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "upload",
+        targetEntity: "hotel",
+        details: { type: "hotel_inventory", result },
+      });
+
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Upload failed" });
+    }
+  });
+
+  app.post("/api/admin/upload/coaches-officials", requireAdmin, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File is required" });
+      }
+
+      const content = req.file.buffer.toString('utf-8');
+      const result = await UploadService.uploadCoachesOfficials(content);
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "upload",
+        targetEntity: "participant",
+        details: { type: "coaches_officials", result },
+      });
+
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Upload failed" });
+    }
+  });
+
+  app.post("/api/admin/upload/players", requireAdmin, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File is required" });
+      }
+
+      const content = req.file.buffer.toString('utf-8');
+      const result = await UploadService.uploadPlayers(content);
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "upload",
+        targetEntity: "participant",
+        details: { type: "players", result },
+      });
+
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Upload failed" });
+    }
+  });
+
+  // Dashboard routes
+  app.get("/api/admin/dashboard/stats", requireAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get stats" });
+    }
+  });
+
+  app.get("/api/admin/dashboard/participants", requireAdmin, async (req, res) => {
+    try {
+      const filters = req.query;
+      const participants = await storage.getParticipants(filters);
+      res.json(participants);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get participants" });
+    }
+  });
+
+  app.get("/api/admin/dashboard/hotels", requireAdmin, async (req, res) => {
+    try {
+      const hotels = await storage.getHotels();
+      res.json(hotels);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get hotels" });
+    }
+  });
+
+  // Coach dashboard routes
+  app.get("/api/coach/dashboard", requireCoach, async (req, res) => {
+    try {
+      const coachId = req.session.user.coachId;
+      if (!coachId) {
+        return res.status(400).json({ message: "Coach ID not found" });
+      }
+
+      const players = await storage.getParticipantsByCoachId(coachId);
+      const coach = await storage.getParticipantByParticipantId(coachId);
+      
+      res.json({ coach, players });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get dashboard data" });
+    }
+  });
+
+  // Check-in/Check-out routes
+  app.post("/api/coach/checkin", requireCoach, async (req, res) => {
+    try {
+      const { participantIds } = checkinSchema.parse(req.body);
+      const coachId = req.session.user.coachId;
+      
+      if (!coachId) {
+        return res.status(400).json({ message: "Coach ID not found" });
+      }
+
+      const checkedInParticipants: Participant[] = [];
+      
+      for (const participantId of participantIds) {
+        const participant = await storage.getParticipantByParticipantId(participantId);
+        
+        if (!participant) {
+          continue;
+        }
+
+        // Verify participant belongs to this coach
+        if (participant.coachId !== coachId && participant.participantId !== coachId) {
+          continue;
+        }
+
+        const updated = await storage.updateParticipant(participant.id, {
+          checkinStatus: "checked_in",
+          checkinTime: new Date(),
+        });
+
+        if (updated) {
+          checkedInParticipants.push(updated);
+        }
+      }
+
+      // Send notification to transport POC if coach is checking in players
+      const coach = await storage.getParticipantByParticipantId(coachId);
+      if (coach && coach.transportPoc && checkedInParticipants.length > 0) {
+        const playerCount = checkedInParticipants.filter(p => p.role === 'player').length;
+        if (playerCount > 0) {
+          await NotificationService.sendCheckinNotification(
+            coach.transportPoc,
+            coachId,
+            playerCount,
+            new Date().toLocaleString()
+          );
+        }
+      }
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "checkin",
+        targetEntity: "participant",
+        details: { participantIds, checkedInCount: checkedInParticipants.length },
+      });
+
+      res.json({ 
+        message: "Check-in successful", 
+        checkedIn: checkedInParticipants.length,
+        participants: checkedInParticipants 
+      });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Check-in failed" });
+    }
+  });
+
+  app.post("/api/coach/checkout", requireCoach, async (req, res) => {
+    try {
+      const { participantIds, newCheckoutDate } = checkoutSchema.parse(req.body);
+      const coachId = req.session.user.coachId;
+      
+      if (!coachId) {
+        return res.status(400).json({ message: "Coach ID not found" });
+      }
+
+      const checkedOutParticipants: Participant[] = [];
+      
+      for (const participantId of participantIds) {
+        const participant = await storage.getParticipantByParticipantId(participantId);
+        
+        if (!participant) {
+          continue;
+        }
+
+        // Verify participant belongs to this coach
+        if (participant.coachId !== coachId && participant.participantId !== coachId) {
+          continue;
+        }
+
+        // Validate new checkout date is not after original end date
+        if (newCheckoutDate) {
+          const newDate = new Date(newCheckoutDate);
+          if (newDate > participant.bookingEndDate) {
+            continue;
+          }
+        }
+
+        const updated = await storage.updateParticipant(participant.id, {
+          checkinStatus: "checked_out",
+          checkoutTime: new Date(),
+          actualCheckoutDate: newCheckoutDate ? new Date(newCheckoutDate) : undefined,
+        });
+
+        if (updated) {
+          checkedOutParticipants.push(updated);
+        }
+      }
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "checkout",
+        targetEntity: "participant",
+        details: { participantIds, checkedOutCount: checkedOutParticipants.length, newCheckoutDate },
+      });
+
+      res.json({ 
+        message: "Check-out successful", 
+        checkedOut: checkedOutParticipants.length,
+        participants: checkedOutParticipants 
+      });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Check-out failed" });
+    }
+  });
+
+  // Admin early checkout
+  app.post("/api/admin/early-checkout", requireAdmin, async (req, res) => {
+    try {
+      const { participantIds, newCheckoutDate } = checkoutSchema.parse(req.body);
+      
+      const notifications: Array<{ to: string; message: string }> = [];
+      const updatedParticipants: Participant[] = [];
+      
+      for (const participantId of participantIds) {
+        const participant = await storage.getParticipantByParticipantId(participantId);
+        
+        if (!participant) {
+          continue;
+        }
+
+        const updated = await storage.updateParticipant(participant.id, {
+          actualCheckoutDate: newCheckoutDate ? new Date(newCheckoutDate) : undefined,
+        });
+
+        if (updated) {
+          updatedParticipants.push(updated);
+
+          // Send notification to participant and coach
+          if (participant.mobileNumber) {
+            notifications.push({
+              to: participant.mobileNumber,
+              message: `CM Trophy Update: Your checkout date has been updated to ${newCheckoutDate}. Please plan accordingly. - Ievolve Events`
+            });
+          }
+
+          // If it's a player, also notify the coach
+          if (participant.role === 'player' && participant.coachId) {
+            const coach = await storage.getUserByCoachId(participant.coachId);
+            if (coach && coach.mobileNumber) {
+              notifications.push({
+                to: coach.mobileNumber,
+                message: `CM Trophy Update: Player ${participant.name}'s checkout date has been updated to ${newCheckoutDate}. - Ievolve Events`
+              });
+            }
+          }
+        }
+      }
+
+      // Send all notifications
+      if (notifications.length > 0) {
+        await NotificationService.sendBulkNotifications(notifications);
+      }
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "early_checkout",
+        targetEntity: "participant",
+        details: { participantIds, newCheckoutDate, notificationsSent: notifications.length },
+      });
+
+      res.json({ 
+        message: "Early checkout processed", 
+        updated: updatedParticipants.length,
+        notificationsSent: notifications.length 
+      });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Early checkout failed" });
+    }
+  });
+
+  // Participant management (Admin only)
+  app.get("/api/admin/participants/:id", requireAdmin, async (req, res) => {
+    try {
+      const participant = await storage.getParticipantById(req.params.id);
+      if (!participant) {
+        return res.status(404).json({ message: "Participant not found" });
+      }
+      res.json(participant);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get participant" });
+    }
+  });
+
+  app.put("/api/admin/participants/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateParticipant(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Participant not found" });
+      }
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "edit",
+        targetEntity: "participant",
+        targetId: req.params.id,
+        details: req.body,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to update participant" });
+    }
+  });
+
+  app.delete("/api/admin/participants/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteParticipant(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Participant not found" });
+      }
+
+      await storage.createAuditLog({
+        userId: req.session.user.id,
+        actionType: "delete",
+        targetEntity: "participant",
+        targetId: req.params.id,
+      });
+
+      res.json({ message: "Participant deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to delete participant" });
+    }
+  });
+
+  // Export data (Admin only)
+  app.get("/api/admin/export/participants", requireAdmin, async (req, res) => {
+    try {
+      const filters = req.query;
+      const participants = await storage.getParticipants(filters);
+      
+      // Convert to CSV
+      const headers = [
+        'ID', 'Name', 'Mobile', 'Role', 'Discipline', 'District', 'Team',
+        'Hotel ID', 'Hotel Name', 'Booking Reference', 'Start Date', 'End Date',
+        'Status', 'Check-in Time', 'Check-out Time'
+      ];
+      
+      const rows = participants.map(p => [
+        p.participantId,
+        p.name,
+        p.mobileNumber || '',
+        p.role,
+        p.discipline,
+        p.district || '',
+        p.teamName || '',
+        p.hotelId,
+        p.hotelName,
+        p.bookingReference,
+        p.bookingStartDate.toISOString().split('T')[0],
+        p.bookingEndDate.toISOString().split('T')[0],
+        p.checkinStatus,
+        p.checkinTime?.toISOString() || '',
+        p.checkoutTime?.toISOString() || ''
+      ]);
+
+      const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="participants.csv"');
+      res.send(csv);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Export failed" });
+    }
+  });
+
+  // Audit logs (Admin only)
+  app.get("/api/admin/audit-logs", requireAdmin, async (req, res) => {
+    try {
+      const filters = req.query;
+      const logs = await storage.getAuditLogs(filters);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get audit logs" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
