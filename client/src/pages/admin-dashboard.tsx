@@ -400,7 +400,7 @@ export default function AdminDashboard() {
       <UploadModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
-        uploadType={uploadType}
+        uploadType={uploadType as "hotel_inventory" | "coaches_officials" | "players" | undefined}
         onUploadTypeChange={setUploadType}
       />
     </div>

@@ -155,17 +155,7 @@ export default function UploadModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg w-full" data-testid="upload-modal">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Upload Data Sheet</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              data-testid="button-close-upload"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle>Upload Data Sheet</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
