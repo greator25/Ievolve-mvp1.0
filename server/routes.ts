@@ -573,6 +573,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Checkout dashboard endpoint
+  app.get("/api/admin/dashboard/checkout", requireAdmin, async (req, res) => {
+    try {
+      const participants = await storage.getParticipants();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const checkoutData = participants.map((participant: any) => {
+        const bookingEndDate = new Date(participant.bookingEndDate);
+        const timeDiff = bookingEndDate.getTime() - today.getTime();
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        
+        return {
+          ...participant,
+          daysRemaining,
+          isOverdue: daysRemaining < 0 && participant.checkinStatus !== "checked_out"
+        };
+      }).filter((p: any) => p.checkinStatus === "checked_in" || p.checkinStatus === "checked_out");
+
+      // Calculate stats
+      const stats = {
+        totalCheckedIn: checkoutData.filter((p: any) => p.checkinStatus === "checked_in").length,
+        dueToday: checkoutData.filter((p: any) => p.daysRemaining === 0 && p.checkinStatus === "checked_in").length,
+        overdue: checkoutData.filter((p: any) => p.isOverdue).length,
+        completed: checkoutData.filter((p: any) => {
+          const checkoutDate = p.checkoutTime ? new Date(p.checkoutTime) : null;
+          return p.checkinStatus === "checked_out" && checkoutDate && 
+                 checkoutDate.toDateString() === today.toDateString();
+        }).length
+      };
+
+      res.json({ participants: checkoutData, stats });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to fetch checkout data" });
+    }
+  });
+
   // Admin early checkout
   app.post("/api/admin/early-checkout", requireAdmin, async (req, res) => {
     try {
