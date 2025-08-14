@@ -16,6 +16,7 @@ import HotelCards from "@/components/hotel-cards";
 import type { DashboardStats } from "@/lib/types";
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadType, setUploadType] = useState<"hotel_inventory" | "coaches_officials" | "players" | "">("");
   const { toast } = useToast();
@@ -140,18 +141,34 @@ export default function AdminDashboard() {
               </div>
               <div className="hidden md:block">
                 <div className="ml-10 flex items-baseline space-x-4">
-                  <a href="#dashboard" className="bg-primary-100 text-primary-700 px-3 py-2 rounded-md text-sm font-medium" data-testid="nav-dashboard">
+                  <button 
+                    onClick={() => setActiveTab("dashboard")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === "dashboard" ? "bg-primary-100 text-primary-700" : "text-gray-500 hover:text-gray-700"}`} 
+                    data-testid="nav-dashboard"
+                  >
                     Dashboard
-                  </a>
-                  <a href="#participants" className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium" data-testid="nav-participants">
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab("participants")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === "participants" ? "bg-primary-100 text-primary-700" : "text-gray-500 hover:text-gray-700"}`}
+                    data-testid="nav-participants"
+                  >
                     Participants
-                  </a>
-                  <a href="#hotels" className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium" data-testid="nav-hotels">
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab("hotels")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === "hotels" ? "bg-primary-100 text-primary-700" : "text-gray-500 hover:text-gray-700"}`}
+                    data-testid="nav-hotels"
+                  >
                     Hotels
-                  </a>
-                  <a href="#reports" className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium" data-testid="nav-reports">
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab("reports")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === "reports" ? "bg-primary-100 text-primary-700" : "text-gray-500 hover:text-gray-700"}`}
+                    data-testid="nav-reports"
+                  >
                     Reports
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -191,123 +208,192 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dashboard Header */}
-        <div className="mb-8">
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate" data-testid="header-title">
-                CM Trophy 2025 - Admin Dashboard
-              </h2>
-              <p className="mt-1 text-sm text-gray-500" data-testid="header-subtitle">
-                Manage accommodations, check-ins, and event logistics
-              </p>
-            </div>
-            <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => exportMutation.mutate()}
-                disabled={exportMutation.isPending}
-                data-testid="button-export-data"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {exportMutation.isPending ? "Exporting..." : "Export Data"}
-              </Button>
-              <Button
-                onClick={() => setUploadModalOpen(true)}
-                data-testid="button-upload-data"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Data
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="mb-8">
-          <StatsCards stats={stats} />
-        </div>
-
-        {/* Data Upload Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Data Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {/* Hotel Inventory Upload */}
-              <div 
-                className="border-2 border-gray-300 border-dashed rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
-                onClick={() => handleUploadClick("hotel_inventory")}
-                data-testid="upload-area-hotel-inventory"
-              >
-                <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                  <Building className="h-12 w-12" />
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900">Hotel Inventory Sheet</p>
-                  <p className="text-gray-500 mt-1">Upload hotel room availability data</p>
-                </div>
-                <div className="mt-4">
-                  <Button variant="secondary" size="sm" data-testid="button-upload-hotel-inventory">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload PSV
-                  </Button>
+        {/* Tab Content */}
+        {activeTab === "dashboard" && (
+          <>
+            {/* Dashboard Header */}
+            <div className="mb-8">
+              <div className="md:flex md:items-center md:justify-between">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate" data-testid="header-title">
+                    CM Trophy 2025 - Admin Dashboard
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500" data-testid="header-subtitle">
+                    Manage accommodations, check-ins, and event logistics
+                  </p>
                 </div>
               </div>
+            </div>
 
-              {/* Coach & Official Data Upload */}
-              <div 
-                className="border-2 border-gray-300 border-dashed rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
-                onClick={() => handleUploadClick("coaches_officials")}
-                data-testid="upload-area-coaches-officials"
-              >
-                <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                  <UserCheck className="h-12 w-12" />
-                </div>
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900">Coach & Official Data</p>
-                  <p className="text-gray-500 mt-1">Upload coach and official information</p>
-                </div>
-                <div className="mt-4">
-                  <Button variant="secondary" size="sm" data-testid="button-upload-coaches-officials">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload PSV
-                  </Button>
-                </div>
-              </div>
+            {/* Statistics Cards */}
+            <div className="mb-8">
+              <StatsCards stats={stats} />
+            </div>
+          </>
+        )}
 
-              {/* Player Data Upload */}
-              <div 
-                className="border-2 border-gray-300 border-dashed rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
-                onClick={() => handleUploadClick("players")}
-                data-testid="upload-area-players"
-              >
-                <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                  <UsersIcon className="h-12 w-12" />
+        {activeTab === "participants" && (
+          <>
+            {/* Participants Header */}
+            <div className="mb-8">
+              <div className="md:flex md:items-center md:justify-between">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate" data-testid="header-title">
+                    Participant Management
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500" data-testid="header-subtitle">
+                    Upload participant data, manage check-ins, and track accommodations
+                  </p>
                 </div>
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900">Player Data Sheet</p>
-                  <p className="text-gray-500 mt-1">Upload player registration data</p>
-                </div>
-                <div className="mt-4">
-                  <Button variant="secondary" size="sm" data-testid="button-upload-players">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload PSV
+                <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => exportMutation.mutate()}
+                    disabled={exportMutation.isPending}
+                    data-testid="button-export-data"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {exportMutation.isPending ? "Exporting..." : "Export Data"}
                   </Button>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Participants Management */}
-        <div className="mb-8">
-          <ParticipantTable isAdmin={true} />
-        </div>
+            {/* Participant Data Upload Section */}
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Participant Data Upload</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {/* Coach & Official Data Upload */}
+                  <div 
+                    className="border-2 border-gray-300 border-dashed rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
+                    onClick={() => handleUploadClick("coaches_officials")}
+                    data-testid="upload-area-coaches-officials"
+                  >
+                    <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                      <UserCheck className="h-12 w-12" />
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900">Coach & Official Data</p>
+                      <p className="text-gray-500 mt-1">Upload coach and official information</p>
+                    </div>
+                    <div className="mt-4">
+                      <Button variant="secondary" size="sm" data-testid="button-upload-coaches-officials">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload PSV
+                      </Button>
+                    </div>
+                  </div>
 
-        {/* Hotel Management Overview */}
-        <HotelCards />
+                  {/* Player Data Upload */}
+                  <div 
+                    className="border-2 border-gray-300 border-dashed rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
+                    onClick={() => handleUploadClick("players")}
+                    data-testid="upload-area-players"
+                  >
+                    <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                      <UsersIcon className="h-12 w-12" />
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900">Player Data Sheet</p>
+                      <p className="text-gray-500 mt-1">Upload player registration data</p>
+                    </div>
+                    <div className="mt-4">
+                      <Button variant="secondary" size="sm" data-testid="button-upload-players">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload PSV
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Participants Management */}
+            <div className="mb-8">
+              <ParticipantTable isAdmin={true} />
+            </div>
+          </>
+        )}
+
+        {activeTab === "hotels" && (
+          <>
+            {/* Hotels Header */}
+            <div className="mb-8">
+              <div className="md:flex md:items-center md:justify-between">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate" data-testid="header-title">
+                    Hotel Management
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500" data-testid="header-subtitle">
+                    Upload hotel inventory and manage accommodation bookings
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Hotel Data Upload Section */}
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Hotel Inventory Upload</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-1">
+                  {/* Hotel Inventory Upload */}
+                  <div 
+                    className="border-2 border-gray-300 border-dashed rounded-lg p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
+                    onClick={() => handleUploadClick("hotel_inventory")}
+                    data-testid="upload-area-hotel-inventory"
+                  >
+                    <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                      <Building className="h-12 w-12" />
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900">Hotel Inventory Sheet</p>
+                      <p className="text-gray-500 mt-1">Upload hotel room availability data</p>
+                    </div>
+                    <div className="mt-4">
+                      <Button variant="secondary" size="sm" data-testid="button-upload-hotel-inventory">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload PSV
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Hotel Management Overview */}
+            <HotelCards />
+          </>
+        )}
+
+        {activeTab === "reports" && (
+          <>
+            {/* Reports Header */}
+            <div className="mb-8">
+              <div className="md:flex md:items-center md:justify-between">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate" data-testid="header-title">
+                    Reports & Analytics
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500" data-testid="header-subtitle">
+                    Generate reports and view analytics for the event
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reports Content - Placeholder for now */}
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-gray-500">Reports functionality coming soon...</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Upload Modal */}
