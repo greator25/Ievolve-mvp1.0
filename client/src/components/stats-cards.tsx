@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, CheckCircle, Bed, Clock } from "lucide-react";
+import { Users, CheckCircle, Bed, Clock, LogOut } from "lucide-react";
 import type { DashboardStats } from "@/lib/types";
 
 interface StatsCardsProps {
@@ -29,6 +29,16 @@ export default function StatsCards({ stats }: StatsCardsProps) {
       changeColor: "text-gray-500",
     },
     {
+      title: "Checked Out",
+      value: (stats?.checkedOutCount || 0).toLocaleString(),
+      icon: LogOut,
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      change: stats?.totalParticipants ? Math.round(((stats?.checkedOutCount || 0) / stats.totalParticipants) * 100) + "%" : "0%",
+      changeText: "of total",
+      changeColor: "text-gray-500",
+    },
+    {
       title: "Available Rooms",
       value: (stats?.totalAvailableRooms || 0).toLocaleString(),
       icon: Bed,
@@ -51,7 +61,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
       {cards.map((card, index) => (
         <Card key={index} className="overflow-hidden shadow" data-testid={`stats-card-${index}`}>
           <CardContent className="p-5">
