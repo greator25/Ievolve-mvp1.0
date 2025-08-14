@@ -400,6 +400,8 @@ export default function AdminDashboard() {
       <UploadModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
+        uploadType={uploadType}
+        onUploadTypeChange={setUploadType}
       />
     </div>
   );

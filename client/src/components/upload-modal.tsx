@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +15,27 @@ import type { UploadResult } from "@/lib/types";
 interface UploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  uploadType?: UploadType;
+  onUploadTypeChange?: (type: UploadType | "") => void;
 }
 
 type UploadType = "hotel_inventory" | "coaches_officials" | "players";
 
-export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
+export default function UploadModal({ 
+  open, 
+  onOpenChange, 
+  uploadType: propsUploadType,
+  onUploadTypeChange 
+}: UploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [uploadType, setUploadType] = useState<UploadType | "">("");
+  const [uploadType, setUploadType] = useState<UploadType | "">(propsUploadType || "");
+  
+  // Sync with props when they change
+  useEffect(() => {
+    if (propsUploadType) {
+      setUploadType(propsUploadType);
+    }
+  }, [propsUploadType]);
   const [options, setOptions] = useState({
     validateHotelIds: true,
     enforceMinimumStay: true,
@@ -116,9 +130,10 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   const handleClose = () => {
     setFile(null);
-    setUploadType("");
+    setUploadType(propsUploadType || "");
     setUploadProgress(0);
     setUploadResult(null);
+    onUploadTypeChange?.("");
     setOptions({
       validateHotelIds: true,
       enforceMinimumStay: true,
@@ -182,19 +197,36 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
           </div>
 
           {/* Upload Type Selection */}
-          <div className="space-y-2">
-            <Label>Data Sheet Type</Label>
-            <Select value={uploadType} onValueChange={(value: UploadType) => setUploadType(value)}>
-              <SelectTrigger data-testid="select-upload-type">
-                <SelectValue placeholder="Select sheet type..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hotel_inventory">Hotel Inventory Sheet</SelectItem>
-                <SelectItem value="coaches_officials">Coach & Official Data Sheet</SelectItem>
-                <SelectItem value="players">Player Data Sheet</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Only show type selection if not pre-selected */}
+          {!propsUploadType && (
+            <div className="space-y-2">
+              <Label>Data Sheet Type</Label>
+              <Select value={uploadType} onValueChange={(value: UploadType) => setUploadType(value)}>
+                <SelectTrigger data-testid="select-upload-type">
+                  <SelectValue placeholder="Select sheet type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hotel_inventory">Hotel Inventory Sheet</SelectItem>
+                  <SelectItem value="coaches_officials">Coach & Official Data Sheet</SelectItem>
+                  <SelectItem value="players">Player Data Sheet</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {/* Show selected type when pre-selected */}
+          {propsUploadType && (
+            <div className="space-y-2">
+              <Label>Data Sheet Type</Label>
+              <div className="p-3 bg-gray-50 border rounded-md">
+                <span className="text-sm font-medium">
+                  {propsUploadType === "hotel_inventory" && "Hotel Inventory Sheet"}
+                  {propsUploadType === "coaches_officials" && "Coach & Official Data Sheet"}
+                  {propsUploadType === "players" && "Player Data Sheet"}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Validation Options */}
           <div className="space-y-3">
