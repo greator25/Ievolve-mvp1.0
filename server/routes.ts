@@ -483,6 +483,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin check-in/check-out endpoints
+  app.post("/api/admin/checkin", requireAdmin, async (req, res) => {
+    try {
+      const { participantIds } = checkinSchema.parse(req.body);
+      
+      const checkedInParticipants: Participant[] = [];
+      
+      for (const participantId of participantIds) {
+        const participant = await storage.getParticipantByParticipantId(participantId);
+        
+        if (!participant) {
+          continue;
+        }
+
+        const updated = await storage.updateParticipant(participant.id, {
+          checkinStatus: "checked_in",
+          checkinTime: new Date(),
+        });
+
+        if (updated) {
+          checkedInParticipants.push(updated);
+        }
+      }
+
+      await storage.createAuditLog({
+        userId: req.session.user!.id,
+        actionType: "checkin",
+        targetEntity: "participant",
+        details: { participantIds, checkedInCount: checkedInParticipants.length },
+      });
+
+      res.json({ 
+        message: "Check-in successful", 
+        checkedIn: checkedInParticipants.length,
+        participants: checkedInParticipants 
+      });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Check-in failed" });
+    }
+  });
+
+  app.post("/api/admin/checkout", requireAdmin, async (req, res) => {
+    try {
+      const { participantIds, newCheckoutDate } = checkoutSchema.parse(req.body);
+      
+      const checkedOutParticipants: Participant[] = [];
+      
+      for (const participantId of participantIds) {
+        const participant = await storage.getParticipantByParticipantId(participantId);
+        
+        if (!participant) {
+          continue;
+        }
+
+        // Validate new checkout date is not after original end date
+        if (newCheckoutDate) {
+          const newDate = new Date(newCheckoutDate);
+          if (newDate > participant.bookingEndDate) {
+            continue;
+          }
+        }
+
+        const updated = await storage.updateParticipant(participant.id, {
+          checkinStatus: "checked_out",
+          checkoutTime: new Date(),
+          actualCheckoutDate: newCheckoutDate ? new Date(newCheckoutDate) : undefined,
+        });
+
+        if (updated) {
+          checkedOutParticipants.push(updated);
+        }
+      }
+
+      await storage.createAuditLog({
+        userId: req.session.user!.id,
+        actionType: "checkout",
+        targetEntity: "participant",
+        details: { participantIds, checkedOutCount: checkedOutParticipants.length, newCheckoutDate },
+      });
+
+      res.json({ 
+        message: "Check-out successful", 
+        checkedOut: checkedOutParticipants.length,
+        participants: checkedOutParticipants 
+      });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Check-out failed" });
+    }
+  });
+
   // Admin early checkout
   app.post("/api/admin/early-checkout", requireAdmin, async (req, res) => {
     try {

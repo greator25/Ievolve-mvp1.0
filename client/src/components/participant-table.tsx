@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Edit, LogIn, LogOut, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Participant, ParticipantFilters } from "@/lib/types";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface ParticipantTableProps {
   isAdmin?: boolean;
@@ -27,6 +28,9 @@ export default function ParticipantTable({ isAdmin = false, coachId }: Participa
     sortBy: "createdAt",
     sortOrder: "desc",
   });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: participants = [], isLoading } = useQuery({
     queryKey: [
@@ -69,6 +73,76 @@ export default function ParticipantTable({ isAdmin = false, coachId }: Participa
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  // Admin check-in mutation
+  const checkinMutation = useMutation({
+    mutationFn: async (participantId: string) => {
+      const response = await fetch("/api/admin/checkin", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantIds: [participantId] }),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Check-in failed');
+      }
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard/participants"] });
+      toast({
+        title: "Success",
+        description: `Participant checked in successfully`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Check-in failed",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Admin check-out mutation
+  const checkoutMutation = useMutation({
+    mutationFn: async (participantId: string) => {
+      const response = await fetch("/api/admin/checkout", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantIds: [participantId] }),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Check-out failed');
+      }
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard/participants"] });
+      toast({
+        title: "Success",
+        description: `Participant checked out successfully`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Check-out failed",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAdminCheckin = (participantId: string) => {
+    checkinMutation.mutate(participantId);
+  };
+
+  const handleAdminCheckout = (participantId: string) => {
+    checkoutMutation.mutate(participantId);
   };
 
   const getRoleColor = (role: string) => {
@@ -248,11 +322,35 @@ export default function ParticipantTable({ isAdmin = false, coachId }: Participa
                             <Edit className="h-4 w-4" />
                           </Button>
                           {participant.checkinStatus === 'pending' ? (
-                            <Button size="sm" variant="ghost" className="text-success-600" data-testid={`button-checkin-${participant.participantId}`}>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-success-600 hover:bg-success-50"
+                              onClick={() => handleAdminCheckin(participant.participantId)}
+                              disabled={checkinMutation.isPending}
+                              data-testid={`button-checkin-${participant.participantId}`}
+                            >
                               <LogIn className="h-4 w-4" />
                             </Button>
+                          ) : participant.checkinStatus === 'checked_in' ? (
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-error-600 hover:bg-error-50"
+                              onClick={() => handleAdminCheckout(participant.participantId)}
+                              disabled={checkoutMutation.isPending}
+                              data-testid={`button-checkout-${participant.participantId}`}
+                            >
+                              <LogOut className="h-4 w-4" />
+                            </Button>
                           ) : (
-                            <Button size="sm" variant="ghost" className="text-error-600" data-testid={`button-checkout-${participant.participantId}`}>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-gray-400"
+                              disabled
+                              data-testid={`button-completed-${participant.participantId}`}
+                            >
                               <LogOut className="h-4 w-4" />
                             </Button>
                           )}
