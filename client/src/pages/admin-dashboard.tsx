@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
 import { 
   Calendar, Bell, User, Upload, Download, Plus, Menu,
-  Building, UserCheck, Users as UsersIcon
+  Building, UserCheck, Users as UsersIcon, LogOut
 } from "lucide-react";
 import StatsCards from "@/components/stats-cards";
 import UploadModal from "@/components/upload-modal";
@@ -192,13 +192,14 @@ export default function AdminDashboard() {
                       {user?.name || "Admin User"}
                     </span>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={handleLogout}
-                      className="h-8 w-8 bg-primary rounded-full flex items-center justify-center"
-                      data-testid="button-user-menu"
+                      className="flex items-center space-x-2 text-red-600 border-red-600 hover:bg-red-50"
+                      data-testid="button-logout"
                     >
-                      <User className="h-5 w-5 text-white" />
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
                     </Button>
                   </div>
                 </div>

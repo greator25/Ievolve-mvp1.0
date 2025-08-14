@@ -210,13 +210,14 @@ export default function CoachDashboard() {
               </div>
             </div>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
-              className="p-2 text-gray-400 hover:text-gray-600"
+              className="flex items-center space-x-1 text-red-600 border-red-600 hover:bg-red-50"
               onClick={() => logoutMutation.mutate()}
               data-testid="button-logout"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-4 w-4" />
+              <span className="text-xs">Logout</span>
             </Button>
           </div>
         </div>
