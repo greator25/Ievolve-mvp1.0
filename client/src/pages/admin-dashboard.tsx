@@ -26,7 +26,7 @@ export default function AdminDashboard() {
     queryKey: ["/api/auth/me"],
   });
 
-  const user = authData?.user;
+  const user = authData?.user || null;
 
   // Get dashboard statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
