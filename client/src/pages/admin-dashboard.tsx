@@ -12,7 +12,7 @@ import {
 import StatsCards from "@/components/stats-cards";
 import UploadModal from "@/components/upload-modal";
 import ParticipantTable from "@/components/participant-table";
-import HotelCards from "@/components/hotel-cards";
+import HotelTable from "@/components/hotel-table";
 import type { DashboardStats } from "@/lib/types";
 
 export default function AdminDashboard() {
@@ -366,7 +366,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Hotel Management Overview */}
-            <HotelCards />
+            <HotelTable />
           </>
         )}
 
