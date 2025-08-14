@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
+import { useLocation } from "wouter";
 import { 
   Calendar, LogOut, Phone, LogIn, Users as UsersIcon
 } from "lucide-react";
@@ -20,6 +21,7 @@ export default function CoachDashboard() {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Get current user
   const { data: authData } = useQuery({
@@ -64,6 +66,18 @@ export default function CoachDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({ title: "Success", description: "Logged out successfully" });
+      // Force navigation to login page
+      setTimeout(() => {
+        setLocation("/");
+        window.location.reload();
+      }, 500);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Logout failed",
+        variant: "destructive",
+      });
     },
   });
 

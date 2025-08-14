@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/lib/auth";
+import { useLocation } from "wouter";
 import { 
   Calendar, Bell, User, Upload, Download, Plus, Menu,
   Building, UserCheck, Users as UsersIcon, LogOut
@@ -22,6 +23,7 @@ export default function AdminDashboard() {
   const [uploadType, setUploadType] = useState<"hotel_inventory" | "coaches_officials" | "players" | "">("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Get current user
   const { data: authData } = useQuery({
@@ -59,6 +61,11 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({ title: "Success", description: "Logged out successfully" });
+      // Force navigation to login page
+      setTimeout(() => {
+        setLocation("/");
+        window.location.reload();
+      }, 500);
     },
     onError: (error: any) => {
       toast({
