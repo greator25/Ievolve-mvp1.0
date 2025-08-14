@@ -150,7 +150,7 @@ export default function CoachDashboard() {
     }
   };
 
-  if (isLoading || !dashboardData) {
+  if (isLoading || !dashboardData || !dashboardData.coach) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="animate-pulse">
@@ -206,19 +206,19 @@ export default function CoachDashboard() {
               <Avatar className="h-12 w-12">
                 <AvatarFallback className="bg-primary-100">
                   <span className="text-lg font-medium text-primary-600">
-                    {getInitials(coach.name)}
+                    {coach?.name ? getInitials(coach.name) : 'C'}
                   </span>
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <h2 className="text-lg font-medium text-gray-900" data-testid="text-coach-name">
-                  {coach.name}
+                  {coach?.name || 'Coach'}
                 </h2>
                 <p className="text-sm text-gray-500" data-testid="text-coach-discipline">
-                  {coach.discipline} Coach • {coach.participantId}
+                  {coach?.discipline || 'Unknown'} Coach • {coach?.participantId || 'N/A'}
                 </p>
                 <p className="text-sm text-gray-500" data-testid="text-coach-mobile">
-                  {coach.mobileNumber}
+                  {coach?.mobileNumber || 'No mobile'}
                 </p>
               </div>
             </div>
@@ -248,34 +248,34 @@ export default function CoachDashboard() {
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Hotel</span>
               <span className="text-sm font-medium text-gray-900" data-testid="text-coach-hotel">
-                {coach.hotelName}
+                {coach?.hotelName || 'No hotel assigned'}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Booking Reference</span>
               <span className="text-sm font-medium text-gray-900 font-mono" data-testid="text-coach-booking-ref">
-                {coach.bookingReference}
+                {coach?.bookingReference || 'N/A'}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Check-in Date</span>
               <span className="text-sm font-medium text-gray-900" data-testid="text-coach-checkin-date">
-                {new Date(coach.bookingStartDate).toLocaleDateString()}
+                {coach?.bookingStartDate ? new Date(coach.bookingStartDate).toLocaleDateString() : 'N/A'}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Check-out Date</span>
               <span className="text-sm font-medium text-gray-900" data-testid="text-coach-checkout-date">
-                {new Date(coach.bookingEndDate).toLocaleDateString()}
+                {coach?.bookingEndDate ? new Date(coach.bookingEndDate).toLocaleDateString() : 'N/A'}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Status</span>
               <div data-testid="badge-coach-status">
-                {getStatusBadge(coach.checkinStatus)}
+                {getStatusBadge(coach?.checkinStatus || 'pending')}
               </div>
             </div>
-            {coach.checkinStatus === 'pending' && (
+            {coach?.checkinStatus === 'pending' && (
               <Button 
                 className="w-full mt-4"
                 onClick={handleCoachCheckin}
