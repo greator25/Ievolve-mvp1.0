@@ -192,12 +192,14 @@ export const loginSchema = z.object({
 
 export const otpRequestSchema = z.object({
   phoneNumber: z.string().optional(),
+  mobileNumber: z.string().optional(),
   email: z.string().email().optional(),
   purpose: z.enum(["admin_login", "coach_login"]),
 });
 
 export const otpVerifySchema = z.object({
   phoneNumber: z.string().optional(),
+  mobileNumber: z.string().optional(),
   email: z.string().email().optional(),
   otp: z.string().length(6),
   purpose: z.enum(["admin_login", "coach_login"]),
