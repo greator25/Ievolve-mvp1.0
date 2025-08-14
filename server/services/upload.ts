@@ -180,16 +180,37 @@ export class UploadService {
             continue;
           }
 
+          // Normalize mobile number format (ensure +91 prefix for Indian numbers)
+          let normalizedMobile = data.Mobile_Number;
+          if (normalizedMobile && !normalizedMobile.startsWith('+')) {
+            if (normalizedMobile.startsWith('91')) {
+              normalizedMobile = '+' + normalizedMobile;
+            } else if (normalizedMobile.length === 10) {
+              normalizedMobile = '+91' + normalizedMobile;
+            }
+          }
+
           // Create coach user account if role is COACH
           if (data.ROLE === 'COACH') {
-            const existingUser = await storage.getUserByCoachId(data.COACH_id);
+            // Check if user exists by coachId or mobile number
+            let existingUser = await storage.getUserByCoachId(data.COACH_id);
+            if (!existingUser) {
+              existingUser = await storage.getUserByMobile(normalizedMobile);
+            }
+            
             if (!existingUser) {
               await storage.createUser({
-                mobileNumber: data.Mobile_Number,
+                mobileNumber: normalizedMobile,
                 name: data.Name,
                 role: "coach",
                 coachId: data.COACH_id,
                 isActive: true,
+              });
+            } else if (existingUser.coachId !== data.COACH_id) {
+              // Update existing user with coachId if missing
+              await storage.updateUser(existingUser.id, {
+                coachId: data.COACH_id,
+                name: data.Name, // Update name to match PSV data
               });
             }
           }
@@ -197,7 +218,7 @@ export class UploadService {
           const insertParticipant: InsertParticipant = {
             participantId: data.COACH_id,
             name: data.Name,
-            mobileNumber: data.Mobile_Number,
+            mobileNumber: normalizedMobile,
             role: data.ROLE.toLowerCase() as "coach" | "official",
             discipline: data.Discipline,
             hotelId: data.Hotel_ID,
