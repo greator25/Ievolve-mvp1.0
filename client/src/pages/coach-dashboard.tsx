@@ -178,15 +178,10 @@ export default function CoachDashboard() {
   }
 
   if (!dashboardData || !dashboardData.coach) {
-    console.log('Coach dashboard data:', dashboardData);
-    console.log('Dashboard error:', error);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Unable to load coach data</p>
-          <p className="text-sm text-gray-400 mb-4">
-            Error: {error?.message || 'No coach data available'}
-          </p>
           <Button onClick={() => logoutMutation.mutate()}>
             Return to Login
           </Button>
