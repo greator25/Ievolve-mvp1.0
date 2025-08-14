@@ -33,7 +33,6 @@ interface GroupedHotel {
   occupiedRooms: number;
   availableRooms: number;
   instances: Hotel[];
-  priceRange: { min: number; max: number };
   dateRange: { from: string; to: string };
 }
 
@@ -99,7 +98,6 @@ export default function HotelTable() {
         occupiedRooms: 0,
         availableRooms: 0,
         instances: [],
-        priceRange: { min: Infinity, max: 0 },
         dateRange: { from: hotel.dateFrom, to: hotel.dateTo }
       };
     }
@@ -110,9 +108,7 @@ export default function HotelTable() {
     group.availableRooms += hotel.availableRooms;
     group.occupiedRooms += (hotel.totalRooms - hotel.availableRooms);
     
-    // Update price range
-    group.priceRange.min = Math.min(group.priceRange.min, hotel.pricePerDay);
-    group.priceRange.max = Math.max(group.priceRange.max, hotel.pricePerDay);
+
     
     // Update date range
     if (new Date(hotel.dateFrom) < new Date(group.dateRange.from)) {
@@ -204,7 +200,6 @@ export default function HotelTable() {
                 <TableHead className="w-[150px]">Location</TableHead>
                 <TableHead className="w-[120px]">Occupancy</TableHead>
                 <TableHead className="w-[100px]">Status</TableHead>
-                <TableHead className="w-[120px]">Price Range</TableHead>
                 <TableHead className="w-[100px]">Instances</TableHead>
                 <TableHead className="w-[150px]">Date Range</TableHead>
               </TableRow>
@@ -212,7 +207,7 @@ export default function HotelTable() {
             <TableBody>
               {filteredHotels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     {displayHotels.length === 0 ? "No hotels found" : "No hotels match the current filters"}
                   </TableCell>
                 </TableRow>
@@ -274,19 +269,6 @@ export default function HotelTable() {
                         >
                           {status.label}
                         </Badge>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="text-sm">
-                          {hotel.priceRange.min === hotel.priceRange.max ? (
-                            <span className="font-medium">₹{hotel.priceRange.min.toLocaleString()}</span>
-                          ) : (
-                            <span className="font-medium">
-                              ₹{hotel.priceRange.min.toLocaleString()} - ₹{hotel.priceRange.max.toLocaleString()}
-                            </span>
-                          )}
-                          <div className="text-xs text-gray-500">per day</div>
-                        </div>
                       </TableCell>
                       
                       <TableCell>
