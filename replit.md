@@ -4,6 +4,13 @@
 
 This is a comprehensive event management system built for the Ievolve Events organization. The application manages hotel accommodations, participant check-ins/check-outs, and team coordination for sports events. It features role-based access control with Admin and Team Coach dashboards, file upload capabilities for data management, and real-time notification systems. The system is designed to handle large-scale sporting events with multiple hotels, teams, and participants across different disciplines and locations.
 
+## Recent Changes (January 2025)
+
+- **Hotel Management Table View**: Converted hotel inventory from individual cards to a comprehensive table layout with advanced filtering, search capabilities, and better data organization
+- **Coach Authentication Fix**: Resolved data consistency issues between users and participants tables, normalized mobile number formats (+91 prefix), and enhanced upload system validation
+- **Context-Aware Upload Modals**: Upload modals now pre-select appropriate data types based on the current tab/section being viewed
+- **Duplicate UI Element Cleanup**: Removed redundant close buttons and cleaned up modal interfaces
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -15,9 +22,10 @@ Preferred communication style: Simple, everyday language.
 - **Vite Build Tool**: Fast development server and optimized production builds
 - **TanStack Query**: Server state management with caching and synchronization
 - **Wouter**: Lightweight client-side routing
-- **shadcn/ui Components**: Comprehensive UI component library built on Radix UI primitives
+- **shadcn/ui Components**: Comprehensive UI component library built on Radix UI primitives with Table components for data display
 - **Tailwind CSS**: Utility-first styling with custom design system variables
 - **Responsive Design**: Mobile-first approach with adaptive layouts
+- **Data Tables**: Professional table layouts for managing participants and hotel inventory
 
 ### Backend Architecture
 - **Express.js**: RESTful API server with middleware-based architecture

@@ -126,7 +126,7 @@ export default function HotelTable() {
   const displayHotels = Object.values(hotelGroups);
 
   // Get unique districts for filter
-  const districts = [...new Set(hotels.map(h => h.district))];
+  const districts = Array.from(new Set(hotels.map(h => h.district)));
 
   // Filter hotels based on search and filters
   const filteredHotels = displayHotels.filter(hotel => {
