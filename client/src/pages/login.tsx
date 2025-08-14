@@ -69,10 +69,8 @@ export default function Login() {
   // Admin login step 1 mutation
   const adminLoginMutation = useMutation({
     mutationFn: async (data: AdminLoginForm) => {
-      return await apiRequest("/api/auth/admin/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/auth/admin/login", data);
+      return await response.json();
     },
     onSuccess: (response) => {
       if (response.requiresOTP) {
@@ -97,14 +95,12 @@ export default function Login() {
   // Admin OTP verification mutation
   const adminOtpMutation = useMutation({
     mutationFn: async (data: OtpForm) => {
-      return await apiRequest("/api/auth/admin/verify-otp", {
-        method: "POST",
-        body: JSON.stringify({
-          mobileNumber: mobileForOTP,
-          otp: data.otp,
-          purpose: "admin_login",
-        }),
+      const response = await apiRequest("POST", "/api/auth/admin/verify-otp", {
+        mobileNumber: mobileForOTP,
+        otp: data.otp,
+        purpose: "admin_login",
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -126,10 +122,8 @@ export default function Login() {
   // Coach login mutation
   const coachLoginMutation = useMutation({
     mutationFn: async (data: CoachLoginForm) => {
-      return await apiRequest("/api/auth/coach/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/auth/coach/login", data);
+      return await response.json();
     },
     onSuccess: (response, variables) => {
       if (response.requiresOTP) {
@@ -154,14 +148,12 @@ export default function Login() {
   // Coach OTP verification mutation
   const coachOtpMutation = useMutation({
     mutationFn: async (data: OtpForm) => {
-      return await apiRequest("/api/auth/coach/verify-otp", {
-        method: "POST",
-        body: JSON.stringify({
-          mobileNumber: mobileForOTP,
-          otp: data.otp,
-          purpose: "coach_login",
-        }),
+      const response = await apiRequest("POST", "/api/auth/coach/verify-otp", {
+        mobileNumber: mobileForOTP,
+        otp: data.otp,
+        purpose: "coach_login",
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -183,13 +175,11 @@ export default function Login() {
   // Resend OTP mutation
   const resendOtpMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/auth/resend-otp", {
-        method: "POST",
-        body: JSON.stringify({
-          mobileNumber: mobileForOTP,
-          purpose: selectedRole === "admin" ? "admin_login" : "coach_login",
-        }),
+      const response = await apiRequest("POST", "/api/auth/resend-otp", {
+        mobileNumber: mobileForOTP,
+        purpose: selectedRole === "admin" ? "admin_login" : "coach_login",
       });
+      return await response.json();
     },
     onSuccess: () => {
       startCountdown();
