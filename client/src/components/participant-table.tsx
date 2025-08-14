@@ -261,6 +261,7 @@ export default function ParticipantTable({ isAdmin = false, coachId }: Participa
               <TableRow>
                 <TableHead>Participant</TableHead>
                 <TableHead>Role/Team</TableHead>
+                <TableHead>Coach ID</TableHead>
                 <TableHead>Hotel/Booking</TableHead>
                 <TableHead>Dates</TableHead>
                 <TableHead>Status</TableHead>
@@ -296,6 +297,22 @@ export default function ParticipantTable({ isAdmin = false, coachId }: Participa
                       {participant.discipline}
                       {participant.district && ` • ${participant.district}`}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-900">
+                      {participant.coachId ? (
+                        <span className="font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
+                          {participant.coachId}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">No Coach</span>
+                      )}
+                    </div>
+                    {participant.role === 'player' && !participant.coachId && (
+                      <div className="text-xs text-orange-600 mt-1">
+                        ⚠ Missing coach assignment
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-gray-900">{participant.hotelName}</div>
