@@ -1,15 +1,17 @@
-import { storage } from "../storage";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
-
-// In-memory OTP storage (in production, use Redis or similar)
-const otpStore = new Map<string, { otp: string; expires: number }>();
+import { users, otpVerifications, type User, type InsertUser, type InsertOtpVerification } from "../../shared/schema";
+import { db } from "../db";
+import { eq, and, gt } from "drizzle-orm";
+import { sendSMS, generateOTP, formatOTPMessage } from "./sms";
 
 export class AuthService {
-  // Admin login with email/password
-  static async loginAdmin(email: string, password: string) {
-    const user = await storage.getUserByEmail(email);
-    if (!user || user.role !== "admin" || !user.password) {
+  // Admin login with email/password + SMS OTP (2FA)
+  static async loginAdminStep1(email: string, password: string) {
+    const [user] = await db.select().from(users).where(
+      and(eq(users.email, email), eq(users.role, "admin"))
+    );
+    
+    if (!user || !user.password) {
       throw new Error("Invalid credentials");
     }
 
@@ -18,148 +20,219 @@ export class AuthService {
       throw new Error("Invalid credentials");
     }
 
+    // Step 1 passed, now send OTP for 2FA
+    if (!user.mobileNumber) {
+      throw new Error("Admin mobile number not configured for 2FA");
+    }
+
+    await this.sendOTP(user.mobileNumber, "admin_login");
+    
+    return { 
+      message: "OTP sent to your registered mobile number", 
+      requiresOTP: true,
+      mobileNumber: user.mobileNumber
+    };
+  }
+
+  // Admin OTP verification (Step 2 of login)
+  static async loginAdminStep2(mobileNumber: string, otp: string) {
+    const isValidOTP = await this.verifyOTP(mobileNumber, otp, "admin_login");
+    if (!isValidOTP) {
+      throw new Error("Invalid or expired OTP");
+    }
+
+    const [user] = await db.select().from(users).where(
+      and(eq(users.mobileNumber, mobileNumber), eq(users.role, "admin"))
+    );
+
+    if (!user) {
+      throw new Error("Admin not found");
+    }
+
     return user;
   }
 
-  // Send OTP to coach mobile number
-  static async sendOTP(mobileNumber: string) {
-    const user = await storage.getUserByMobile(mobileNumber);
-    if (!user || user.role !== "coach") {
+  // Coach login with mobile number + OTP (single factor)
+  static async loginCoach(mobileNumber: string) {
+    const [user] = await db.select().from(users).where(
+      and(eq(users.mobileNumber, mobileNumber), eq(users.role, "coach"))
+    );
+    
+    if (!user) {
       throw new Error("Coach not found with this mobile number");
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    if (!user.isActive) {
+      throw new Error("Account is inactive. Please contact administrator");
+    }
 
-    otpStore.set(mobileNumber, { otp, expires });
+    await this.sendOTP(mobileNumber, "coach_login");
+    
+    return { 
+      message: "OTP sent to your mobile number",
+      requiresOTP: true,
+      mobileNumber
+    };
+  }
 
-    // TODO: Send SMS using external service
-    console.log(`OTP for ${mobileNumber}: ${otp}`);
+  // Coach OTP verification
+  static async verifyCoachOTP(mobileNumber: string, otp: string) {
+    const isValidOTP = await this.verifyOTP(mobileNumber, otp, "coach_login");
+    if (!isValidOTP) {
+      throw new Error("Invalid or expired OTP");
+    }
+
+    const [user] = await db.select().from(users).where(
+      and(eq(users.mobileNumber, mobileNumber), eq(users.role, "coach"))
+    );
+
+    if (!user) {
+      throw new Error("Coach not found");
+    }
+
+    return user;
+  }
+
+  // Send OTP to mobile number
+  static async sendOTP(phoneNumber: string, purpose: "admin_login" | "coach_login") {
+    // Clean up expired OTPs
+    await db.delete(otpVerifications).where(
+      and(
+        eq(otpVerifications.phoneNumber, phoneNumber),
+        eq(otpVerifications.purpose, purpose)
+      )
+    );
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Store OTP in database
+    await db.insert(otpVerifications).values({
+      phoneNumber,
+      otp,
+      purpose,
+      expiresAt,
+      isUsed: false,
+    });
+
+    // Send SMS
+    const message = formatOTPMessage(otp, purpose);
+    const result = await sendSMS(phoneNumber, message);
+
+    if (!result.success) {
+      throw new Error(`Failed to send OTP: ${result.error}`);
+    }
 
     return { message: "OTP sent successfully" };
   }
 
-  // Verify OTP for coach login
-  static async verifyOTP(mobileNumber: string, otp: string) {
-    const storedOTP = otpStore.get(mobileNumber);
+  // Verify OTP
+  static async verifyOTP(phoneNumber: string, otp: string, purpose: "admin_login" | "coach_login"): Promise<boolean> {
+    const [storedOTP] = await db.select().from(otpVerifications).where(
+      and(
+        eq(otpVerifications.phoneNumber, phoneNumber),
+        eq(otpVerifications.otp, otp),
+        eq(otpVerifications.purpose, purpose),
+        eq(otpVerifications.isUsed, false),
+        gt(otpVerifications.expiresAt, new Date())
+      )
+    );
+
     if (!storedOTP) {
-      throw new Error("OTP not found or expired");
+      return false;
     }
 
-    if (Date.now() > storedOTP.expires) {
-      otpStore.delete(mobileNumber);
-      throw new Error("OTP expired");
-    }
+    // Mark OTP as used
+    await db.update(otpVerifications)
+      .set({ isUsed: true })
+      .where(eq(otpVerifications.id, storedOTP.id));
 
-    if (storedOTP.otp !== otp) {
-      throw new Error("Invalid OTP");
-    }
+    return true;
+  }
 
-    otpStore.delete(mobileNumber);
+  // Resend OTP
+  static async resendOTP(phoneNumber: string, purpose: "admin_login" | "coach_login") {
+    // Check if user exists
+    const [user] = await db.select().from(users).where(
+      and(
+        eq(users.mobileNumber, phoneNumber),
+        eq(users.role, purpose === "admin_login" ? "admin" : "coach")
+      )
+    );
 
-    const user = await storage.getUserByMobile(mobileNumber);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error("User not found with this mobile number");
     }
+
+    // Check rate limiting (prevent spam)
+    const recentOTP = await db.select().from(otpVerifications).where(
+      and(
+        eq(otpVerifications.phoneNumber, phoneNumber),
+        eq(otpVerifications.purpose, purpose),
+        gt(otpVerifications.createdAt, new Date(Date.now() - 1 * 60 * 1000)) // 1 minute
+      )
+    );
+
+    if (recentOTP.length > 0) {
+      throw new Error("Please wait 1 minute before requesting a new OTP");
+    }
+
+    return await this.sendOTP(phoneNumber, purpose);
+  }
+
+  // Create admin user
+  static async createAdmin(userData: Omit<InsertUser, "role">) {
+    const hashedPassword = await bcrypt.hash(userData.password!, 10);
+    
+    const [user] = await db.insert(users).values({
+      ...userData,
+      password: hashedPassword,
+      role: "admin",
+    }).returning();
 
     return user;
   }
 
-  // Hash password for admin users
-  static async hashPassword(password: string): Promise<string> {
-    return await bcrypt.hash(password, 10);
+  // Create coach user
+  static async createCoach(userData: Omit<InsertUser, "role" | "password">) {
+    const [user] = await db.insert(users).values({
+      ...userData,
+      role: "coach",
+    }).returning();
+
+    return user;
   }
 
-  // Create default admin user and sample data
+  // Create default admin user (used during app initialization)
   static async createDefaultAdmin() {
-    const existingAdmin = await storage.getUserByEmail("admin@ievolve.com");
-    if (!existingAdmin) {
-      // Create secure admin password
-      const securePassword = "IevolveAdmin2025!";
-      const hashedPassword = await this.hashPassword(securePassword);
-      await storage.createUser({
+    try {
+      // Check if admin already exists
+      const [existingAdmin] = await db.select().from(users).where(
+        and(eq(users.email, "admin@ievolve.com"), eq(users.role, "admin"))
+      );
+
+      if (existingAdmin) {
+        return existingAdmin;
+      }
+
+      // Create default admin with secure password and mobile number for 2FA
+      const hashedPassword = await bcrypt.hash("IevolveAdmin2025!", 10);
+      
+      const [admin] = await db.insert(users).values({
         email: "admin@ievolve.com",
         password: hashedPassword,
+        mobileNumber: "+918888888888", // Default admin mobile for 2FA
         name: "System Admin",
         role: "admin",
         isActive: true,
-      });
-      console.log(`Default admin created: admin@ievolve.com / ${securePassword}`);
-      
-      // Create sample coach users
-      await this.createSampleData();
-    }
-  }
+      }).returning();
 
-  // Create sample users and data for testing
-  static async createSampleData() {
-    try {
-      // Create sample coach users
-      const sampleCoaches = [
-        {
-          email: "coach.basketball@ievolve.com",
-          mobileNumber: "+918888888881",
-          name: "Rajesh Kumar",
-          role: "coach" as const,
-          coachId: "COACH_001",
-          isActive: true,
-        },
-        {
-          email: "coach.football@ievolve.com", 
-          mobileNumber: "+918888888882",
-          name: "Priya Sharma",
-          role: "coach" as const,
-          coachId: "COACH_002", 
-          isActive: true,
-        }
-      ];
-
-      for (const coach of sampleCoaches) {
-        const existing = await storage.getUserByMobile(coach.mobileNumber);
-        if (!existing) {
-          await storage.createUser(coach);
-        }
-      }
-
-      // Create sample hotels
-      const sampleHotels = [
-        {
-          hotelId: "HOTEL_001",
-          instanceCode: "INST_001",
-          hotelName: "Grand Plaza Hotel",
-          location: "Central Mumbai",
-          district: "Mumbai",
-          totalRooms: 50,
-          occupiedRooms: 35,
-          availableRooms: 15,
-          startDate: new Date('2025-02-01'),
-          endDate: new Date('2025-02-15'),
-        },
-        {
-          hotelId: "HOTEL_002", 
-          instanceCode: "INST_001",
-          hotelName: "Coastal Resort",
-          location: "Marine Drive", 
-          district: "Mumbai",
-          totalRooms: 30,
-          occupiedRooms: 20,
-          availableRooms: 10,
-          startDate: new Date('2025-02-01'),
-          endDate: new Date('2025-02-15'),
-        }
-      ];
-
-      for (const hotel of sampleHotels) {
-        const existing = await storage.getHotelByHotelIdAndInstance(hotel.hotelId, hotel.instanceCode);
-        if (!existing) {
-          await storage.createHotel(hotel);
-        }
-      }
-
-      console.log("Sample data created successfully");
+      console.log("✅ Default admin created successfully");
+      return admin;
     } catch (error) {
-      console.log("Sample data creation failed:", error);
+      console.log("⚠️  Default admin already exists or creation failed:", error);
+      return null;
     }
   }
 }

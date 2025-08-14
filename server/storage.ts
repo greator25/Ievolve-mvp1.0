@@ -5,7 +5,7 @@ import {
   type InsertReassignment, type AuditLog, type InsertAuditLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, or, like, desc, asc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, or, like, desc, asc, sql, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -306,7 +306,7 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(desc(auditLog.timestamp));
   }
 
-  async getDashboardStats(): Promise<DashboardStats> {
+  async getDashboardStats(date?: string): Promise<DashboardStats> {
     // Get total participants
     const totalParticipants = await db.select().from(participants);
     
@@ -316,11 +316,21 @@ export class DatabaseStorage implements IStorage {
       .from(participants)
       .where(sql`${participants.checkinStatus} = 'checked_in'`);
 
+    // Get checked out count
+    const checkedOutParticipants = await db
+      .select()
+      .from(participants)
+      .where(sql`${participants.checkinStatus} = 'checked_out'`);
+
     // Get pending actions (participants with pending status)
     const pendingParticipants = await db
       .select()
       .from(participants)
       .where(sql`${participants.checkinStatus} = 'pending'`);
+
+    // Get team and player counts
+    const teams = await db.selectDistinct({ teamName: participants.teamName }).from(participants).where(isNotNull(participants.teamName));
+    const players = await db.select().from(participants).where(eq(participants.role, 'player'));
 
     // Get hotel statistics
     const allHotels = await db.select().from(hotels);
@@ -333,12 +343,22 @@ export class DatabaseStorage implements IStorage {
     
     const estimatedRoomsNeeded = Math.ceil(playerCount / 3) + Math.ceil(coachCount / 2) + officialCount;
 
+    const totalRooms = allHotels.reduce((sum, hotel) => sum + hotel.totalRooms, 0);
+    const occupiedRooms = allHotels.reduce((sum, hotel) => sum + hotel.occupiedRooms, 0);
+    const occupancyRate = totalRooms > 0 ? (occupiedRooms / totalRooms) * 100 : 0;
+
     return {
       totalParticipants: totalParticipants.length,
+      totalTeams: teams.length,
+      totalPlayers: players.length,
       checkedInCount: checkedInParticipants.length,
+      checkedOutCount: checkedOutParticipants.length,
       pendingActions: pendingParticipants.length,
-      availableRooms: totalAvailableRooms,
       totalHotels: allHotels.length,
+      totalAvailableRooms: totalAvailableRooms,
+      totalRooms: totalRooms,
+      occupiedRooms: occupiedRooms,
+      occupancyRate: Math.round(occupancyRate),
       estimatedRoomsNeeded,
     };
   }

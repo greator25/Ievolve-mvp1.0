@@ -7,11 +7,30 @@ export interface User {
 
 export interface DashboardStats {
   totalParticipants: number;
+  totalTeams: number;
+  totalPlayers: number;
   checkedInCount: number;
+  checkedOutCount: number;
   pendingActions: number;
-  availableRooms: number;
   totalHotels: number;
+  totalAvailableRooms: number;
+  occupancyRate: number;
   estimatedRoomsNeeded: number;
+  totalRooms: number;
+  occupiedRooms: number;
+}
+
+export interface ParticipantFilters {
+  search?: string;
+  discipline?: string;
+  checkinStatus?: string;
+  role?: string;
+  coachName?: string;
+  coachId?: string;
+  hotelId?: string;
+  page?: number;
+  limit?: number;
+  date?: string;
 }
 
 export interface Participant {

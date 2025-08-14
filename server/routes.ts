@@ -10,6 +10,7 @@ import { UploadService } from "./services/upload";
 import { NotificationService } from "./services/notification";
 import { 
   loginSchema, uploadFileSchema, checkinSchema, checkoutSchema,
+  otpRequestSchema, otpVerifySchema,
   type User, type Participant 
 } from "@shared/schema";
 import multer from "multer";
@@ -34,13 +35,14 @@ const upload = multer({
 declare module 'express-session' {
   interface SessionData {
     user: User;
+    userId: string;
   }
 }
 
 // Middleware to check authentication
 const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (!req.session.user) {
-    return res.status(401).json({ message: "Authentication required" });
+  if (!req.session.user && !req.session.userId) {
+    return res.status(401).json({ message: "Not authenticated" });
   }
   next();
 };
@@ -83,15 +85,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await AuthService.createDefaultAdmin();
 
   // Authentication routes
+  
+  // Admin login step 1: email/password verification + OTP send
   app.post("/api/auth/admin/login", async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
       
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password required" });
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
-      const user = await AuthService.loginAdmin(email, password);
+      const result = await AuthService.loginAdminStep1(email, password);
+      res.json(result);
+    } catch (error) {
+      res.status(401).json({ message: error instanceof Error ? error.message : "Login failed" });
+    }
+  });
+
+  // Admin login step 2: OTP verification
+  app.post("/api/auth/admin/verify-otp", async (req, res) => {
+    try {
+      const { mobileNumber, otp } = otpVerifySchema.parse(req.body);
+      
+      if (!mobileNumber || !otp) {
+        return res.status(400).json({ message: "Mobile number and OTP are required" });
+      }
+
+      const user = await AuthService.loginAdminStep2(mobileNumber, otp);
+      req.session.userId = user.id;
       req.session.user = user;
       
       await storage.createAuditLog({
@@ -99,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actionType: "login",
         targetEntity: "user",
         targetId: user.id,
-        details: { method: "admin_login", email },
+        details: { method: "admin_2fa_login", mobileNumber },
       });
 
       res.json({ user: { id: user.id, name: user.name, role: user.role } });
@@ -108,7 +129,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/coach/request-otp", async (req, res) => {
+  // Coach login step 1: mobile number + OTP send
+  app.post("/api/auth/coach/login", async (req, res) => {
     try {
       const { mobileNumber } = loginSchema.parse(req.body);
       
@@ -116,22 +138,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Mobile number required" });
       }
 
-      const result = await AuthService.sendOTP(mobileNumber);
+      const result = await AuthService.loginCoach(mobileNumber);
       res.json(result);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to send OTP" });
     }
   });
 
+  // Coach login step 2: OTP verification
   app.post("/api/auth/coach/verify-otp", async (req, res) => {
     try {
-      const { mobileNumber, otp } = loginSchema.parse(req.body);
+      const { mobileNumber, otp } = otpVerifySchema.parse(req.body);
       
       if (!mobileNumber || !otp) {
         return res.status(400).json({ message: "Mobile number and OTP required" });
       }
 
-      const user = await AuthService.verifyOTP(mobileNumber, otp);
+      const user = await AuthService.verifyCoachOTP(mobileNumber, otp);
+      req.session.userId = user.id;
       req.session.user = user;
 
       await storage.createAuditLog({
@@ -139,12 +163,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actionType: "login",
         targetEntity: "user",
         targetId: user.id,
-        details: { method: "otp_login", mobileNumber },
+        details: { method: "coach_otp_login", mobileNumber },
       });
 
       res.json({ user: { id: user.id, name: user.name, role: user.role, coachId: user.coachId } });
     } catch (error) {
       res.status(401).json({ message: error instanceof Error ? error.message : "Login failed" });
+    }
+  });
+
+  // Resend OTP for both admin and coach
+  app.post("/api/auth/resend-otp", async (req, res) => {
+    try {
+      const { mobileNumber, purpose } = otpRequestSchema.parse(req.body);
+      
+      if (!mobileNumber || !purpose) {
+        return res.status(400).json({ message: "Mobile number and purpose required" });
+      }
+
+      const result = await AuthService.resendOTP(mobileNumber, purpose);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to resend OTP" });
     }
   });
 

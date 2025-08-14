@@ -80,6 +80,18 @@ export const reassignments = pgTable("reassignments", {
   reassignedAt: timestamp("reassigned_at").defaultNow(),
 });
 
+// OTP table for SMS verification
+export const otpVerifications = pgTable("otp_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  phoneNumber: text("phone_number").notNull(),
+  email: text("email"), // For admin OTP
+  otp: text("otp").notNull(),
+  purpose: text("purpose").notNull(), // "admin_login", "coach_login"
+  isUsed: boolean("is_used").default(false),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Audit log table
 export const auditLog = pgTable("audit_log", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -150,6 +162,11 @@ export const insertAuditLogSchema = createInsertSchema(auditLog).omit({
   timestamp: true,
 });
 
+export const insertOtpSchema = createInsertSchema(otpVerifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -161,6 +178,8 @@ export type Reassignment = typeof reassignments.$inferSelect;
 export type InsertReassignment = z.infer<typeof insertReassignmentSchema>;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type OtpVerification = typeof otpVerifications.$inferSelect;
+export type InsertOtpVerification = z.infer<typeof insertOtpSchema>;
 
 // Additional schemas for API validation
 export const loginSchema = z.object({
@@ -168,6 +187,20 @@ export const loginSchema = z.object({
   password: z.string().min(6).optional(),
   mobileNumber: z.string().optional(),
   otp: z.string().optional(),
+  role: z.enum(["admin", "coach"]).optional(),
+});
+
+export const otpRequestSchema = z.object({
+  phoneNumber: z.string().optional(),
+  email: z.string().email().optional(),
+  purpose: z.enum(["admin_login", "coach_login"]),
+});
+
+export const otpVerifySchema = z.object({
+  phoneNumber: z.string().optional(),
+  email: z.string().email().optional(),
+  otp: z.string().length(6),
+  purpose: z.enum(["admin_login", "coach_login"]),
 });
 
 export const uploadFileSchema = z.object({
