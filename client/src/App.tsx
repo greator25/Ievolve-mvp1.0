@@ -39,7 +39,13 @@ function AuthWrapper() {
       <Route path="/admin" component={() => 
         user.role === 'admin' ? <AdminDashboard /> : <NotFound />
       } />
+      <Route path="/admin-dashboard" component={() => 
+        user.role === 'admin' ? <AdminDashboard /> : <NotFound />
+      } />
       <Route path="/coach" component={() => 
+        user.role === 'coach' ? <CoachDashboard /> : <NotFound />
+      } />
+      <Route path="/coach-dashboard" component={() => 
         user.role === 'coach' ? <CoachDashboard /> : <NotFound />
       } />
       <Route component={NotFound} />

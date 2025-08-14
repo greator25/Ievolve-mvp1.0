@@ -108,7 +108,7 @@ export default function Login() {
         title: "Login Successful",
         description: "Welcome to Ievolve Event Management",
       });
-      setLocation("/admin-dashboard");
+      setLocation("/admin");
     },
     onError: (error: any) => {
       toast({
@@ -161,7 +161,7 @@ export default function Login() {
         title: "Login Successful",
         description: "Welcome Coach!",
       });
-      setLocation("/coach-dashboard");
+      setLocation("/coach");
     },
     onError: (error: any) => {
       toast({
