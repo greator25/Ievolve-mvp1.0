@@ -312,8 +312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Coach ID not found" });
       }
 
-      const players = await storage.getParticipantsByCoachId(coachId);
-      const coach = await storage.getParticipantByParticipantId(coachId);
+      // Batch database queries for better performance
+      const [players, coach] = await Promise.all([
+        storage.getParticipantsByCoachId(coachId),
+        storage.getParticipantByParticipantId(coachId)
+      ]);
       
       res.json({ coach, players });
     } catch (error) {

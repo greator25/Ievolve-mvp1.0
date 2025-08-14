@@ -26,10 +26,10 @@ export default function CoachDashboard() {
     queryKey: ["/api/auth/me"],
   });
 
-  const user = authData?.user;
+  const user = authData?.user || null;
 
   // Get coach dashboard data
-  const { data: dashboardData, isLoading } = useQuery({
+  const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ["/api/coach/dashboard"],
     queryFn: async (): Promise<CoachDashboardData> => {
       const response = await fetch("/api/coach/dashboard", {
@@ -40,7 +40,23 @@ export default function CoachDashboard() {
       }
       return await response.json();
     },
+    retry: 2,
+    staleTime: 30000, // Cache for 30 seconds
   });
+
+  // Handle errors gracefully
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading dashboard: {error.message}</p>
+          <Button onClick={() => logoutMutation.mutate()}>
+            Return to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Logout mutation
   const logoutMutation = useMutation({
@@ -150,16 +166,25 @@ export default function CoachDashboard() {
     }
   };
 
-  if (isLoading || !dashboardData || !dashboardData.coach) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="animate-pulse">
-          <div className="bg-white shadow-sm h-20"></div>
-          <div className="max-w-md mx-auto px-4 py-6">
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-6 h-32"></div>
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-6 h-40"></div>
-            <div className="bg-white rounded-lg shadow-sm p-4 h-64"></div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading coach dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData || !dashboardData.coach) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Unable to load coach data</p>
+          <Button onClick={() => logoutMutation.mutate()}>
+            Return to Login
+          </Button>
         </div>
       </div>
     );

@@ -24,6 +24,15 @@ export default function AdminDashboard() {
   // Get current user
   const { data: authData } = useQuery({
     queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const response = await fetch("/api/auth/me", {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Not authenticated');
+      }
+      return await response.json();
+    }
   });
 
   const user = authData?.user || null;
