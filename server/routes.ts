@@ -157,6 +157,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await AuthService.verifyCoachOTP(mobileNumber, otp);
       req.session.userId = user.id;
       req.session.user = user;
+      
+      // Force session save
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve(true);
+        });
+      });
+      
+      console.log('Coach session saved:', {
+        userId: req.session.userId,
+        userRole: req.session.user?.role,
+        coachId: req.session.user?.coachId,
+        sessionId: req.sessionID
+      });
 
       await storage.createAuditLog({
         userId: user.id,
@@ -200,6 +215,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get current user
   app.get("/api/auth/me", (req, res) => {
+    console.log('Session check:', {
+      hasUser: !!req.session.user,
+      userId: req.session.userId,
+      userRole: req.session.user?.role,
+      sessionId: req.sessionID
+    });
+    
     if (req.session.user) {
       const { id, name, role, coachId } = req.session.user;
       res.json({ user: { id, name, role, coachId } });
@@ -308,6 +330,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/coach/dashboard", requireCoach, async (req, res) => {
     try {
       const coachId = req.session.user!.coachId;
+      console.log('Coach dashboard request:', {
+        userId: req.session.user!.id,
+        coachId,
+        sessionId: req.sessionID
+      });
+      
       if (!coachId) {
         return res.status(400).json({ message: "Coach ID not found" });
       }
@@ -318,8 +346,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getParticipantByParticipantId(coachId)
       ]);
       
+      console.log('Coach dashboard response:', {
+        coachFound: !!coach,
+        playersCount: players.length,
+        coachData: coach ? { id: coach.id, name: coach.name, role: coach.role } : null
+      });
+      
       res.json({ coach, players });
     } catch (error) {
+      console.error('Coach dashboard error:', error);
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get dashboard data" });
     }
   });
