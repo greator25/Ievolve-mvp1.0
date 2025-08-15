@@ -6,6 +6,7 @@ This is a comprehensive event management system built for the Ievolve Events org
 
 ## Recent Changes (January 2025)
 
+- **Hotel Edit Functionality**: Implemented comprehensive hotel editing with backend API endpoints, date conflict validation, audit logging, and user-friendly modal interface for all admins to modify hotel details
 - **Logout Button Enhancement**: Added explicit logout buttons with clear labeling and red styling to both admin and coach dashboards with proper redirection to role selection page
 - **Google Cloud Deployment Ready**: Complete deployment configuration including Dockerfile, Cloud Build, Cloud SQL setup, and automated deployment scripts for Google Cloud Platform
 - **Hotel Management Table View**: Converted hotel inventory from individual cards to a comprehensive table layout with advanced filtering, search capabilities, and better data organization
