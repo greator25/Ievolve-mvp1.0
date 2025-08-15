@@ -1,11 +1,19 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Building2, MapPin, Users, Bed } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { Search, Building2, MapPin, Users, Bed, Edit3, Calendar } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Hotel {
   id: string;
@@ -13,14 +21,15 @@ interface Hotel {
   hotelName: string;
   location: string;
   district: string;
+  address: string;
+  pincode: string;
   totalRooms: number;
   availableRooms: number;
+  occupiedRooms: number;
   instanceCode: string;
-  dateFrom: string;
-  dateTo: string;
-  pricePerDay: number;
-  maxOccupancy: number;
-  amenities: string[];
+  startDate: string;
+  endDate: string;
+  createdAt: string;
 }
 
 interface GroupedHotel {
@@ -36,6 +45,19 @@ interface GroupedHotel {
   dateRange: { from: string; to: string };
 }
 
+// Hotel edit form schema
+const hotelEditSchema = z.object({
+  hotelName: z.string().min(1, "Hotel name is required"),
+  location: z.string().min(1, "Location is required"),
+  district: z.string().min(1, "District is required"),
+  address: z.string().min(1, "Address is required"),
+  pincode: z.string().min(6, "Pincode must be at least 6 digits"),
+  totalRooms: z.number().min(1, "Must have at least 1 room"),
+  availableRooms: z.number().min(0, "Available rooms cannot be negative"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+});
+
 const getOccupancyStatus = (occupied: number, total: number) => {
   const percentage = (occupied / total) * 100;
   if (percentage >= 90) return { label: "Full", variant: "destructive", color: "red-500" };
@@ -48,10 +70,78 @@ export default function HotelTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [districtFilter, setDistrictFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: hotels = [], isLoading, error } = useQuery<Hotel[]>({
     queryKey: ["/api/admin/dashboard/hotels"],
   });
+
+  // Form for hotel editing
+  const form = useForm<z.infer<typeof hotelEditSchema>>({
+    resolver: zodResolver(hotelEditSchema),
+    defaultValues: {
+      hotelName: "",
+      location: "",
+      district: "",
+      address: "",
+      pincode: "",
+      totalRooms: 0,
+      availableRooms: 0,
+      startDate: "",
+      endDate: "",
+    },
+  });
+
+  // Mutation for updating hotel
+  const updateHotelMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: z.infer<typeof hotelEditSchema> }) => {
+      return await apiRequest(`/api/admin/hotels/${data.id}`, "PUT", data.updates);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard/hotels"] });
+      setIsEditModalOpen(false);
+      setEditingHotel(null);
+      form.reset();
+      toast({
+        title: "Hotel Updated",
+        description: `Hotel has been updated successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update hotel",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle edit button click
+  const handleEditHotel = (hotel: Hotel) => {
+    setEditingHotel(hotel);
+    form.reset({
+      hotelName: hotel.hotelName,
+      location: hotel.location,
+      district: hotel.district,
+      address: hotel.address,
+      pincode: hotel.pincode,
+      totalRooms: hotel.totalRooms,
+      availableRooms: hotel.availableRooms,
+      startDate: new Date(hotel.startDate).toISOString().split('T')[0],
+      endDate: new Date(hotel.endDate).toISOString().split('T')[0],
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Handle form submission
+  const onSubmit = (data: z.infer<typeof hotelEditSchema>) => {
+    if (!editingHotel) return;
+    updateHotelMutation.mutate({ id: editingHotel.id, updates: data });
+  };
 
   if (isLoading) {
     return (
@@ -98,7 +188,7 @@ export default function HotelTable() {
         occupiedRooms: 0,
         availableRooms: 0,
         instances: [],
-        dateRange: { from: hotel.dateFrom, to: hotel.dateTo }
+        dateRange: { from: hotel.startDate, to: hotel.endDate }
       };
     }
 
@@ -111,11 +201,11 @@ export default function HotelTable() {
 
     
     // Update date range
-    if (new Date(hotel.dateFrom) < new Date(group.dateRange.from)) {
-      group.dateRange.from = hotel.dateFrom;
+    if (new Date(hotel.startDate) < new Date(group.dateRange.from)) {
+      group.dateRange.from = hotel.startDate;
     }
-    if (new Date(hotel.dateTo) > new Date(group.dateRange.to)) {
-      group.dateRange.to = hotel.dateTo;
+    if (new Date(hotel.endDate) > new Date(group.dateRange.to)) {
+      group.dateRange.to = hotel.endDate;
     }
   });
 
@@ -202,12 +292,13 @@ export default function HotelTable() {
                 <TableHead className="w-[100px]">Status</TableHead>
                 <TableHead className="w-[100px]">Instances</TableHead>
                 <TableHead className="w-[150px]">Date Range</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredHotels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     {displayHotels.length === 0 ? "No hotels found" : "No hotels match the current filters"}
                   </TableCell>
                 </TableRow>
@@ -289,6 +380,22 @@ export default function HotelTable() {
                           </div>
                         </div>
                       </TableCell>
+                      
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {hotel.instances.map((instance) => (
+                            <Button
+                              key={instance.id}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditHotel(instance)}
+                              data-testid={`button-edit-${instance.id}`}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                          ))}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -303,6 +410,198 @@ export default function HotelTable() {
           </div>
         )}
       </CardContent>
+
+      {/* Edit Hotel Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5" />
+              Edit Hotel Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="hotelName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hotel Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-hotel-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-hotel-location" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="district"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>District</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-hotel-district" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="totalRooms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Total Rooms</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          data-testid="input-hotel-total-rooms"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="availableRooms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Rooms</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          data-testid="input-hotel-available-rooms"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-hotel-address" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="pincode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pincode</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-hotel-pincode" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field}
+                          data-testid="input-hotel-start-date"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field}
+                          data-testid="input-hotel-end-date"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {editingHotel && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    <strong>Hotel ID:</strong> {editingHotel.hotelId} • 
+                    <strong> Instance:</strong> {editingHotel.instanceCode}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Note: Hotel ID cannot be changed. Changes will only affect this instance.
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsEditModalOpen(false)}
+                  data-testid="button-cancel-edit"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateHotelMutation.isPending}
+                  data-testid="button-save-hotel"
+                >
+                  {updateHotelMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

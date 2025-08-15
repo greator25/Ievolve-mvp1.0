@@ -146,6 +146,21 @@ export const insertHotelSchema = createInsertSchema(hotels).omit({
   createdAt: true,
 });
 
+// Hotel update schema (excludes hotelId, instanceCode, and id)
+export const updateHotelSchema = createInsertSchema(hotels).omit({
+  id: true,
+  hotelId: true,
+  instanceCode: true,
+  createdAt: true,
+}).extend({
+  // Add custom validation for dates
+  startDate: z.string().transform((str) => new Date(str)),
+  endDate: z.string().transform((str) => new Date(str)),
+}).refine((data) => data.endDate > data.startDate, {
+  message: "End date must be after start date",
+  path: ["endDate"],
+});
+
 export const insertParticipantSchema = createInsertSchema(participants).omit({
   id: true,
   createdAt: true,
@@ -172,6 +187,7 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Hotel = typeof hotels.$inferSelect;
 export type InsertHotel = z.infer<typeof insertHotelSchema>;
+export type UpdateHotel = z.infer<typeof updateHotelSchema>;
 export type Participant = typeof participants.$inferSelect;
 export type InsertParticipant = z.infer<typeof insertParticipantSchema>;
 export type Reassignment = typeof reassignments.$inferSelect;

@@ -1,6 +1,6 @@
 import { 
   users, hotels, participants, reassignments, auditLog,
-  type User, type InsertUser, type Hotel, type InsertHotel,
+  type User, type InsertUser, type Hotel, type InsertHotel, type UpdateHotel,
   type Participant, type InsertParticipant, type Reassignment, 
   type InsertReassignment, type AuditLog, type InsertAuditLog
 } from "@shared/schema";
@@ -18,11 +18,13 @@ export interface IStorage {
 
   // Hotel management
   getHotels(): Promise<Hotel[]>;
+  getHotelById(id: string): Promise<Hotel | undefined>;
   getHotelByHotelIdAndInstance(hotelId: string, instanceCode: string): Promise<Hotel | undefined>;
   createHotel(hotel: InsertHotel): Promise<Hotel>;
   updateHotel(id: string, updates: Partial<InsertHotel>): Promise<Hotel | undefined>;
   deleteHotel(id: string): Promise<boolean>;
   getHotelsWithOverlappingDates(hotelId: string, startDate: Date, endDate: Date): Promise<Hotel[]>;
+  checkHotelDateConflicts(hotelId: string, excludeInstanceCode: string, startDate: Date, endDate: Date): Promise<Hotel[]>;
 
   // Participant management
   getParticipants(filters?: ParticipantFilters): Promise<Participant[]>;
@@ -115,6 +117,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(hotels).orderBy(asc(hotels.hotelId), asc(hotels.instanceCode));
   }
 
+  async getHotelById(id: string): Promise<Hotel | undefined> {
+    const [hotel] = await db.select().from(hotels).where(eq(hotels.id, id));
+    return hotel || undefined;
+  }
+
   async getHotelByHotelIdAndInstance(hotelId: string, instanceCode: string): Promise<Hotel | undefined> {
     const [hotel] = await db
       .select()
@@ -149,6 +156,23 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(hotels.hotelId, hotelId),
+          or(
+            and(gte(hotels.startDate, startDate), lte(hotels.startDate, endDate)),
+            and(gte(hotels.endDate, startDate), lte(hotels.endDate, endDate)),
+            and(lte(hotels.startDate, startDate), gte(hotels.endDate, endDate))
+          )
+        )
+      );
+  }
+
+  async checkHotelDateConflicts(hotelId: string, excludeInstanceCode: string, startDate: Date, endDate: Date): Promise<Hotel[]> {
+    return await db
+      .select()
+      .from(hotels)
+      .where(
+        and(
+          eq(hotels.hotelId, hotelId),
+          sql`${hotels.instanceCode} != ${excludeInstanceCode}`,
           or(
             and(gte(hotels.startDate, startDate), lte(hotels.startDate, endDate)),
             and(gte(hotels.endDate, startDate), lte(hotels.endDate, endDate)),

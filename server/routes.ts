@@ -10,10 +10,11 @@ import { UploadService } from "./services/upload";
 import { NotificationService } from "./services/notification";
 import { 
   loginSchema, uploadFileSchema, checkinSchema, checkoutSchema,
-  otpRequestSchema, otpVerifySchema,
-  type User, type Participant 
+  otpRequestSchema, otpVerifySchema, updateHotelSchema,
+  type User, type Participant, type Hotel, type UpdateHotel 
 } from "@shared/schema";
 import multer from "multer";
+import { z } from "zod";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -323,6 +324,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(hotels);
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get hotels" });
+    }
+  });
+
+  // Hotel management endpoints
+  app.get("/api/admin/hotels/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const hotel = await storage.getHotelById(id);
+      
+      if (!hotel) {
+        return res.status(404).json({ message: "Hotel not found" });
+      }
+      
+      res.json(hotel);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get hotel" });
+    }
+  });
+
+  app.put("/api/admin/hotels/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = updateHotelSchema.parse(req.body);
+      
+      // Get original hotel for audit logging
+      const originalHotel = await storage.getHotelById(id);
+      if (!originalHotel) {
+        return res.status(404).json({ message: "Hotel not found" });
+      }
+
+      // Check for date conflicts with other instances of the same hotel
+      const conflictingHotels = await storage.checkHotelDateConflicts(
+        originalHotel.hotelId,
+        originalHotel.instanceCode,
+        updates.startDate,
+        updates.endDate
+      );
+
+      if (conflictingHotels.length > 0) {
+        return res.status(400).json({ 
+          message: "Date range conflicts with existing hotel instances",
+          conflicts: conflictingHotels
+        });
+      }
+
+      // Detect field changes for audit logging
+      const changes: Record<string, { from: any; to: any }> = {};
+      Object.keys(updates).forEach(key => {
+        const newValue = updates[key as keyof typeof updates];
+        const oldValue = originalHotel[key as keyof typeof originalHotel];
+        
+        // Compare values (handle dates specially)
+        let isChanged = false;
+        if (key === 'startDate' || key === 'endDate') {
+          const newDate = new Date(newValue as string).toISOString();
+          const oldDate = new Date(oldValue as string).toISOString();
+          isChanged = newDate !== oldDate;
+        } else {
+          isChanged = newValue !== oldValue;
+        }
+        
+        if (isChanged) {
+          changes[key] = { from: oldValue, to: newValue };
+        }
+      });
+
+      // Only update if there are actual changes
+      if (Object.keys(changes).length === 0) {
+        return res.json({ message: "No changes detected", hotel: originalHotel });
+      }
+
+      const updatedHotel = await storage.updateHotel(id, updates);
+      
+      if (!updatedHotel) {
+        return res.status(404).json({ message: "Hotel not found or update failed" });
+      }
+
+      // Log the changes to audit log
+      await storage.createAuditLog({
+        userId: req.session.user!.id,
+        actionType: "edit",
+        targetEntity: "hotel",
+        targetId: id,
+        details: { 
+          hotelId: originalHotel.hotelId,
+          instanceCode: originalHotel.instanceCode,
+          changes,
+          changedFields: Object.keys(changes)
+        },
+      });
+
+      res.json({ 
+        message: "Hotel updated successfully", 
+        hotel: updatedHotel,
+        changes: Object.keys(changes)
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to update hotel" });
     }
   });
 
