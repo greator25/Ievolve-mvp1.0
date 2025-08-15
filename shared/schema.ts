@@ -152,11 +152,7 @@ export const updateHotelSchema = createInsertSchema(hotels).omit({
   hotelId: true,
   instanceCode: true,
   createdAt: true,
-}).extend({
-  // Add custom validation for dates
-  startDate: z.string().transform((str) => new Date(str)),
-  endDate: z.string().transform((str) => new Date(str)),
-}).refine((data) => data.endDate > data.startDate, {
+}).refine((data) => new Date(data.endDate) > new Date(data.startDate), {
   message: "End date must be after start date",
   path: ["endDate"],
 });

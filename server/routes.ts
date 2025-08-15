@@ -346,7 +346,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/hotels/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
+      console.log('Hotel update request:', { id, body: req.body });
+      
       const updates = updateHotelSchema.parse(req.body);
+      console.log('Parsed updates:', updates);
       
       // Get original hotel for audit logging
       const originalHotel = await storage.getHotelById(id);
@@ -354,32 +357,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Hotel not found" });
       }
 
+      // Convert string dates to Date objects for conflict checking
+      const startDate = new Date(updates.startDate);
+      const endDate = new Date(updates.endDate);
+
       // Check for date conflicts with other instances of the same hotel
       const conflictingHotels = await storage.checkHotelDateConflicts(
         originalHotel.hotelId,
         originalHotel.instanceCode,
-        updates.startDate,
-        updates.endDate
+        startDate,
+        endDate
       );
 
       if (conflictingHotels.length > 0) {
         return res.status(400).json({ 
           message: "Date range conflicts with existing hotel instances",
-          conflicts: conflictingHotels
+          conflicts: conflictingHotels.map(h => ({ 
+            id: h.id, 
+            instanceCode: h.instanceCode, 
+            startDate: h.startDate, 
+            endDate: h.endDate 
+          }))
         });
       }
 
+      // Prepare updates with proper date conversion
+      const updateData = {
+        ...updates,
+        startDate,
+        endDate,
+      };
+
       // Detect field changes for audit logging
       const changes: Record<string, { from: any; to: any }> = {};
-      Object.keys(updates).forEach(key => {
-        const newValue = updates[key as keyof typeof updates];
+      Object.keys(updateData).forEach(key => {
+        const newValue = updateData[key as keyof typeof updateData];
         const oldValue = originalHotel[key as keyof typeof originalHotel];
         
         // Compare values (handle dates specially)
         let isChanged = false;
         if (key === 'startDate' || key === 'endDate') {
-          const newDate = new Date(newValue as string).toISOString();
-          const oldDate = new Date(oldValue as string).toISOString();
+          const newDate = new Date(newValue as Date).toISOString();
+          const oldDate = new Date(oldValue as Date).toISOString();
           isChanged = newDate !== oldDate;
         } else {
           isChanged = newValue !== oldValue;
@@ -395,7 +414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ message: "No changes detected", hotel: originalHotel });
       }
 
-      const updatedHotel = await storage.updateHotel(id, updates);
+      const updatedHotel = await storage.updateHotel(id, updateData);
       
       if (!updatedHotel) {
         return res.status(404).json({ message: "Hotel not found or update failed" });
@@ -415,12 +434,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
+      console.log('Hotel updated successfully:', updatedHotel.id);
+
       res.json({ 
         message: "Hotel updated successfully", 
         hotel: updatedHotel,
         changes: Object.keys(changes)
       });
     } catch (error) {
+      console.error('Hotel update error:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Validation error", 
