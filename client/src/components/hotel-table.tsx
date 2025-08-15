@@ -99,7 +99,21 @@ export default function HotelTable() {
   // Mutation for updating hotel
   const updateHotelMutation = useMutation({
     mutationFn: async (data: { id: string; updates: z.infer<typeof hotelEditSchema> }) => {
-      return await apiRequest(`/api/admin/hotels/${data.id}`, "PUT", data.updates);
+      const response = await fetch(`/api/admin/hotels/${data.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data.updates),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update hotel");
+      }
+      
+      return await response.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard/hotels"] });
