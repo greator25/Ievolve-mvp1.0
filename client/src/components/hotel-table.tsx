@@ -111,7 +111,9 @@ export default function HotelTable() {
       form.reset();
       toast({
         title: "Hotel Updated",
-        description: `Hotel has been updated successfully.`,
+        description: data.affectedInstances > 1 
+          ? `Hotel updated successfully. ${data.affectedInstances} instances affected.`
+          : "Hotel has been updated successfully.",
       });
     },
     onError: (error: any) => {

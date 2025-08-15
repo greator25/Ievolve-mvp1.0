@@ -410,32 +410,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ message: "No changes detected", hotel: originalHotel });
       }
 
-      const updatedHotel = await storage.updateHotel(id, updateData);
-      
-      if (!updatedHotel) {
-        return res.status(404).json({ message: "Hotel not found or update failed" });
+      // Separate changes into instance-specific and property-wide changes
+      const propertyWideFields = ['address', 'location', 'pincode', 'district'];
+      const propertyWideChanges: Record<string, any> = {};
+      const instanceSpecificChanges: Record<string, any> = {};
+
+      Object.keys(changes).forEach(field => {
+        if (propertyWideFields.includes(field)) {
+          propertyWideChanges[field] = updateData[field as keyof typeof updateData];
+        } else {
+          instanceSpecificChanges[field] = updateData[field as keyof typeof updateData];
+        }
+      });
+
+      let updatedHotels: any[] = [];
+
+      // Update property-wide changes across all instances of the same hotel
+      if (Object.keys(propertyWideChanges).length > 0) {
+        updatedHotels = await storage.updateHotelsByHotelId(originalHotel.hotelId, propertyWideChanges);
+        
+        // Log property-wide changes
+        await storage.createAuditLog({
+          userId: req.session.user!.id,
+          actionType: "edit",
+          targetEntity: "hotel",
+          targetId: originalHotel.hotelId,
+          details: { 
+            hotelId: originalHotel.hotelId,
+            action: "property_wide_update",
+            affectedInstances: updatedHotels.length,
+            changes: Object.keys(propertyWideChanges).reduce((acc, field) => {
+              acc[field] = { from: originalHotel[field as keyof typeof originalHotel], to: propertyWideChanges[field] };
+              return acc;
+            }, {} as Record<string, any>),
+            changedFields: Object.keys(propertyWideChanges)
+          },
+        });
       }
 
-      // Log the changes to audit log
-      await storage.createAuditLog({
-        userId: req.session.user!.id,
-        actionType: "edit",
-        targetEntity: "hotel",
-        targetId: id,
-        details: { 
-          hotelId: originalHotel.hotelId,
-          instanceCode: originalHotel.instanceCode,
-          changes,
-          changedFields: Object.keys(changes)
-        },
-      });
+      // Update instance-specific changes only for this instance
+      let updatedHotel = originalHotel;
+      if (Object.keys(instanceSpecificChanges).length > 0) {
+        const result = await storage.updateHotel(id, instanceSpecificChanges);
+        
+        if (!result) {
+          return res.status(404).json({ message: "Hotel not found or update failed" });
+        }
+        updatedHotel = result;
+
+        // Log instance-specific changes
+        await storage.createAuditLog({
+          userId: req.session.user!.id,
+          actionType: "edit",
+          targetEntity: "hotel",
+          targetId: id,
+          details: { 
+            hotelId: originalHotel.hotelId,
+            instanceCode: originalHotel.instanceCode,
+            action: "instance_specific_update",
+            changes: Object.keys(instanceSpecificChanges).reduce((acc, field) => {
+              acc[field] = { from: originalHotel[field as keyof typeof originalHotel], to: instanceSpecificChanges[field] };
+              return acc;
+            }, {} as Record<string, any>),
+            changedFields: Object.keys(instanceSpecificChanges)
+          },
+        });
+      }
 
       console.log('Hotel updated successfully:', updatedHotel.id);
 
+      const affectedInstances = Object.keys(propertyWideChanges).length > 0 ? updatedHotels.length : 1;
+      
       res.json({ 
-        message: "Hotel updated successfully", 
+        message: `Hotel updated successfully${affectedInstances > 1 ? ` (${affectedInstances} instances affected)` : ''}`, 
         hotel: updatedHotel,
-        changes: Object.keys(changes)
+        changes: Object.keys(changes),
+        affectedInstances
       });
     } catch (error) {
       console.error('Hotel update error:', error);

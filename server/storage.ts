@@ -22,6 +22,7 @@ export interface IStorage {
   getHotelByHotelIdAndInstance(hotelId: string, instanceCode: string): Promise<Hotel | undefined>;
   createHotel(hotel: InsertHotel): Promise<Hotel>;
   updateHotel(id: string, updates: Partial<InsertHotel>): Promise<Hotel | undefined>;
+  updateHotelsByHotelId(hotelId: string, updates: Partial<InsertHotel>): Promise<Hotel[]>;
   deleteHotel(id: string): Promise<boolean>;
   getHotelsWithOverlappingDates(hotelId: string, startDate: Date, endDate: Date): Promise<Hotel[]>;
   checkHotelDateConflicts(hotelId: string, excludeInstanceCode: string, startDate: Date, endDate: Date): Promise<Hotel[]>;
@@ -148,6 +149,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(hotels.id, id))
       .returning();
     return hotel || undefined;
+  }
+
+  async updateHotelsByHotelId(hotelId: string, updates: Partial<InsertHotel>): Promise<Hotel[]> {
+    const updatedHotels = await db
+      .update(hotels)
+      .set(updates)
+      .where(eq(hotels.hotelId, hotelId))
+      .returning();
+    return updatedHotels;
   }
 
   async deleteHotel(id: string): Promise<boolean> {
