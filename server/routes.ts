@@ -357,9 +357,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Hotel not found" });
       }
 
-      // Convert string dates to Date objects for conflict checking
-      const startDate = new Date(updates.startDate);
-      const endDate = new Date(updates.endDate);
+      // The dates are already Date objects from the schema transformation
+      const startDate = updates.startDate;
+      const endDate = updates.endDate;
 
       // Check for date conflicts with other instances of the same hotel
       const conflictingHotels = await storage.checkHotelDateConflicts(
@@ -381,12 +381,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Prepare updates with proper date conversion
-      const updateData = {
-        ...updates,
-        startDate,
-        endDate,
-      };
+      // Updates already contain properly converted dates
+      const updateData = updates;
 
       // Detect field changes for audit logging
       const changes: Record<string, { from: any; to: any }> = {};
