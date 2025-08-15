@@ -32,18 +32,7 @@ interface Hotel {
   createdAt: string;
 }
 
-interface GroupedHotel {
-  id: string;
-  hotelId: string;
-  hotelName: string;
-  location: string;
-  district: string;
-  totalRooms: number;
-  occupiedRooms: number;
-  availableRooms: number;
-  instances: Hotel[];
-  dateRange: { from: string; to: string };
-}
+// Remove GroupedHotel interface since we'll display individual instances
 
 // Hotel edit form schema
 const hotelEditSchema = z.object({
@@ -187,43 +176,8 @@ export default function HotelTable() {
     );
   }
 
-  // Group hotels by hotelId and combine instances
-  const hotelGroups: Record<string, GroupedHotel> = {};
-  
-  hotels.forEach((hotel) => {
-    if (!hotelGroups[hotel.hotelId]) {
-      hotelGroups[hotel.hotelId] = {
-        id: hotel.id,
-        hotelId: hotel.hotelId,
-        hotelName: hotel.hotelName,
-        location: hotel.location,
-        district: hotel.district,
-        totalRooms: 0,
-        occupiedRooms: 0,
-        availableRooms: 0,
-        instances: [],
-        dateRange: { from: hotel.startDate, to: hotel.endDate }
-      };
-    }
-
-    const group = hotelGroups[hotel.hotelId];
-    group.instances.push(hotel);
-    group.totalRooms += hotel.totalRooms;
-    group.availableRooms += hotel.availableRooms;
-    group.occupiedRooms += (hotel.totalRooms - hotel.availableRooms);
-    
-
-    
-    // Update date range
-    if (new Date(hotel.startDate) < new Date(group.dateRange.from)) {
-      group.dateRange.from = hotel.startDate;
-    }
-    if (new Date(hotel.endDate) > new Date(group.dateRange.to)) {
-      group.dateRange.to = hotel.endDate;
-    }
-  });
-
-  const displayHotels = Object.values(hotelGroups);
+  // Display each hotel instance as a separate row
+  const displayHotels = hotels;
 
   // Get unique districts for filter
   const districts = Array.from(new Set(hotels.map(h => h.district)));
@@ -236,7 +190,8 @@ export default function HotelTable() {
     
     const matchesDistrict = districtFilter === "all" || hotel.district === districtFilter;
     
-    const status = getOccupancyStatus(hotel.occupiedRooms, hotel.totalRooms);
+    const occupiedRooms = hotel.totalRooms - hotel.availableRooms;
+    const status = getOccupancyStatus(occupiedRooms, hotel.totalRooms);
     const matchesStatus = statusFilter === "all" || status.label.toLowerCase() === statusFilter;
     
     return matchesSearch && matchesDistrict && matchesStatus;
@@ -251,7 +206,7 @@ export default function HotelTable() {
             Hotel Inventory Overview
           </CardTitle>
           <Badge variant="outline" className="text-sm">
-            {displayHotels.length} Hotels • {hotels.length} Instances
+            {displayHotels.length} Hotel Instances
           </Badge>
         </div>
         
@@ -304,7 +259,7 @@ export default function HotelTable() {
                 <TableHead className="w-[150px]">Location</TableHead>
                 <TableHead className="w-[120px]">Occupancy</TableHead>
                 <TableHead className="w-[100px]">Status</TableHead>
-                <TableHead className="w-[100px]">Instances</TableHead>
+                <TableHead className="w-[100px]">Instance</TableHead>
                 <TableHead className="w-[150px]">Date Range</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
@@ -318,17 +273,18 @@ export default function HotelTable() {
                 </TableRow>
               ) : (
                 filteredHotels.map((hotel) => {
-                  const occupancyPercentage = Math.round((hotel.occupiedRooms / hotel.totalRooms) * 100);
-                  const status = getOccupancyStatus(hotel.occupiedRooms, hotel.totalRooms);
+                  const occupiedRooms = hotel.totalRooms - hotel.availableRooms;
+                  const occupancyPercentage = Math.round((occupiedRooms / hotel.totalRooms) * 100);
+                  const status = getOccupancyStatus(occupiedRooms, hotel.totalRooms);
                   
                   return (
-                    <TableRow key={hotel.hotelId} data-testid={`hotel-row-${hotel.hotelId}`}>
+                    <TableRow key={hotel.id} data-testid={`hotel-row-${hotel.id}`}>
                       <TableCell>
                         <div>
-                          <div className="font-medium text-gray-900" data-testid={`hotel-name-${hotel.hotelId}`}>
+                          <div className="font-medium text-gray-900" data-testid={`hotel-name-${hotel.id}`}>
                             {hotel.hotelName}
                           </div>
-                          <div className="text-sm text-gray-500" data-testid={`hotel-id-${hotel.hotelId}`}>
+                          <div className="text-sm text-gray-500" data-testid={`hotel-id-${hotel.id}`}>
                             ID: {hotel.hotelId}
                           </div>
                         </div>
@@ -348,15 +304,15 @@ export default function HotelTable() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-1">
                             <Users className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm font-medium" data-testid={`hotel-occupancy-${hotel.hotelId}`}>
-                              {hotel.occupiedRooms}/{hotel.totalRooms}
+                            <span className="text-sm font-medium" data-testid={`hotel-occupancy-${hotel.id}`}>
+                              {occupiedRooms}/{hotel.totalRooms}
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
                               className={`bg-${status.color} h-2 rounded-full transition-all duration-300`}
                               style={{ width: `${occupancyPercentage}%` }}
-                              data-testid={`hotel-progress-${hotel.hotelId}`}
+                              data-testid={`hotel-progress-${hotel.id}`}
                             />
                           </div>
                           <div className="text-xs text-gray-500">{occupancyPercentage}%</div>
@@ -370,7 +326,7 @@ export default function HotelTable() {
                             status.variant === 'warning' ? 'secondary' :
                             status.variant === 'success' ? 'default' : 'outline'
                           }
-                          data-testid={`hotel-status-${hotel.hotelId}`}
+                          data-testid={`hotel-status-${hotel.id}`}
                         >
                           {status.label}
                         </Badge>
@@ -379,49 +335,31 @@ export default function HotelTable() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Bed className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm font-medium">{hotel.instances.length}</span>
+                          <span className="text-sm font-medium">{hotel.instanceCode}</span>
                         </div>
                       </TableCell>
                       
                       <TableCell>
                         <div className="text-sm">
                           <div className="font-medium">
-                            {new Date(hotel.dateRange.from).toLocaleDateString()}
+                            {new Date(hotel.startDate).toLocaleDateString()}
                           </div>
                           <div className="text-gray-500">to</div>
                           <div className="font-medium">
-                            {new Date(hotel.dateRange.to).toLocaleDateString()}
+                            {new Date(hotel.endDate).toLocaleDateString()}
                           </div>
                         </div>
                       </TableCell>
                       
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          {hotel.instances.length === 1 ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditHotel(hotel.instances[0])}
-                              data-testid={`button-edit-${hotel.instances[0].id}`}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            hotel.instances.map((instance, index) => (
-                              <Button
-                                key={instance.id}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditHotel(instance)}
-                                data-testid={`button-edit-${instance.id}`}
-                                title={`Edit Instance ${instance.instanceCode}`}
-                              >
-                                <Edit3 className="h-4 w-4" />
-                                <span className="ml-1 text-xs">{instance.instanceCode}</span>
-                              </Button>
-                            ))
-                          )}
-                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditHotel(hotel)}
+                          data-testid={`button-edit-${hotel.id}`}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -433,7 +371,7 @@ export default function HotelTable() {
         
         {filteredHotels.length > 0 && (
           <div className="mt-4 text-sm text-gray-500 border-t pt-4">
-            Showing {filteredHotels.length} of {displayHotels.length} hotels
+            Showing {filteredHotels.length} of {displayHotels.length} hotel instances
           </div>
         )}
       </CardContent>
