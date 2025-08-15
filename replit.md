@@ -6,6 +6,8 @@ This is a comprehensive event management system built for the Ievolve Events org
 
 ## Recent Changes (January 2025)
 
+- **Logout Button Enhancement**: Added explicit logout buttons with clear labeling and red styling to both admin and coach dashboards with proper redirection to role selection page
+- **Google Cloud Deployment Ready**: Complete deployment configuration including Dockerfile, Cloud Build, Cloud SQL setup, and automated deployment scripts for Google Cloud Platform
 - **Hotel Management Table View**: Converted hotel inventory from individual cards to a comprehensive table layout with advanced filtering, search capabilities, and better data organization
 - **Coach Authentication Fix**: Resolved data consistency issues between users and participants tables, normalized mobile number formats (+91 prefix), and enhanced upload system validation
 - **Context-Aware Upload Modals**: Upload modals now pre-select appropriate data types based on the current tab/section being viewed
