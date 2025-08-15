@@ -71,10 +71,16 @@ export interface AuditFilters {
 
 export interface DashboardStats {
   totalParticipants: number;
+  totalTeams: number;
+  totalPlayers: number;
   checkedInCount: number;
+  checkedOutCount: number;
   pendingActions: number;
-  availableRooms: number;
   totalHotels: number;
+  totalAvailableRooms: number;
+  totalRooms: number;
+  occupiedRooms: number;
+  occupancyRate: number;
   estimatedRoomsNeeded: number;
 }
 
@@ -237,7 +243,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    return await query;
+    return await query.execute();
   }
 
   async getParticipantById(id: string): Promise<Participant | undefined> {
@@ -327,7 +333,7 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions));
     }
 
-    return await query.orderBy(desc(auditLog.timestamp));
+    return await query.orderBy(desc(auditLog.timestamp)).execute();
   }
 
   async getDashboardStats(date?: string): Promise<DashboardStats> {
@@ -368,7 +374,7 @@ export class DatabaseStorage implements IStorage {
     const estimatedRoomsNeeded = Math.ceil(playerCount / 3) + Math.ceil(coachCount / 2) + officialCount;
 
     const totalRooms = allHotels.reduce((sum, hotel) => sum + hotel.totalRooms, 0);
-    const occupiedRooms = allHotels.reduce((sum, hotel) => sum + hotel.occupiedRooms, 0);
+    const occupiedRooms = allHotels.reduce((sum, hotel) => sum + (hotel.occupiedRooms || 0), 0);
     const occupancyRate = totalRooms > 0 ? (occupiedRooms / totalRooms) * 100 : 0;
 
     return {
