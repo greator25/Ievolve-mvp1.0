@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -397,17 +397,30 @@ export default function HotelTable() {
                       
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {hotel.instances.map((instance) => (
+                          {hotel.instances.length === 1 ? (
                             <Button
-                              key={instance.id}
                               variant="outline"
                               size="sm"
-                              onClick={() => handleEditHotel(instance)}
-                              data-testid={`button-edit-${instance.id}`}
+                              onClick={() => handleEditHotel(hotel.instances[0])}
+                              data-testid={`button-edit-${hotel.instances[0].id}`}
                             >
                               <Edit3 className="h-4 w-4" />
                             </Button>
-                          ))}
+                          ) : (
+                            hotel.instances.map((instance, index) => (
+                              <Button
+                                key={instance.id}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditHotel(instance)}
+                                data-testid={`button-edit-${instance.id}`}
+                                title={`Edit Instance ${instance.instanceCode}`}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                                <span className="ml-1 text-xs">{instance.instanceCode}</span>
+                              </Button>
+                            ))
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -433,6 +446,9 @@ export default function HotelTable() {
               <Edit3 className="h-5 w-5" />
               Edit Hotel Details
             </DialogTitle>
+            <DialogDescription>
+              Update hotel information. Note that Hotel ID cannot be changed.
+            </DialogDescription>
           </DialogHeader>
           
           <Form {...form}>
