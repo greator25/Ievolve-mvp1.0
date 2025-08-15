@@ -20,7 +20,13 @@ const adminLoginSchema = z.object({
 });
 
 const coachLoginSchema = z.object({
-  mobileNumber: z.string().min(10, "Please enter a valid mobile number"),
+  mobileNumber: z.string().min(10, "Please enter a valid mobile number").transform((val) => {
+    // If user enters number without +91, add it
+    if (val && !val.startsWith('+91')) {
+      return `+91${val}`;
+    }
+    return val;
+  }),
 });
 
 const otpSchema = z.object({
@@ -409,11 +415,23 @@ export default function Login() {
                           <span>Mobile Number</span>
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Enter your mobile number"
-                            {...field}
-                            data-testid="input-coach-mobile"
-                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
+                              +91
+                            </span>
+                            <Input
+                              placeholder="Enter your mobile number"
+                              {...field}
+                              className="pl-12"
+                              maxLength={10}
+                              onChange={(e) => {
+                                // Only allow digits and limit to 10 digits
+                                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                field.onChange(value);
+                              }}
+                              data-testid="input-coach-mobile"
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -446,7 +464,7 @@ export default function Login() {
 
                   <div className="text-xs text-green-600 bg-green-50 p-3 rounded-lg">
                     <Phone className="h-4 w-4 inline mr-1" />
-                    Note: Single-level authentication for team coaches
+                    Note: Enter your 10-digit mobile number. Country code (+91) will be added automatically
                   </div>
                 </form>
               </Form>
