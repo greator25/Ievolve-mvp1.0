@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -92,19 +92,6 @@ export default function AddHotelModal({ open, onOpenChange, mode = "new", onMode
       return await response.json();
     },
     enabled: !!hotelIdToCheck && hotelIdToCheck.length > 0,
-    onSuccess: (data) => {
-      // Auto-populate fields if in instance mode and hotel exists
-      if (mode === "instance" && data?.exists && data.existingInstances?.length > 0) {
-        const firstInstance = data.existingInstances[0];
-        form.setValue("hotelName", firstInstance.hotelName || "");
-        form.setValue("location", firstInstance.location || "");
-        form.setValue("district", firstInstance.district || "");
-        form.setValue("address", firstInstance.address || "");
-        form.setValue("pincode", firstInstance.pincode || "");
-        form.setValue("pointOfContact", firstInstance.pointOfContact || "");
-        form.setValue("contactPhoneNumber", firstInstance.contactPhoneNumber || "");
-      }
-    },
   });
 
   const addHotelMutation = useMutation({
@@ -143,6 +130,46 @@ export default function AddHotelModal({ open, onOpenChange, mode = "new", onMode
     form.setValue("hotelId", value);
     setHotelIdToCheck(value);
   };
+
+  // Reset form when modal opens/closes or mode changes
+  const resetForm = () => {
+    form.reset({
+      hotelId: "",
+      hotelName: "",
+      location: "",
+      district: "",
+      address: "",
+      pincode: "",
+      startDate: "",
+      endDate: "",
+      totalRooms: 1,
+      availableRooms: 1,
+      pointOfContact: "",
+      contactPhoneNumber: "",
+    });
+    setHotelIdToCheck("");
+  };
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+
+  // Auto-populate fields in instance mode
+  useEffect(() => {
+    if (mode === "instance" && hotelCheckResult?.exists && hotelCheckResult.existingInstances?.length > 0) {
+      const firstInstance = hotelCheckResult.existingInstances[0];
+      form.setValue("hotelName", firstInstance.hotelName || "");
+      form.setValue("location", firstInstance.location || "");
+      form.setValue("district", firstInstance.district || "");
+      form.setValue("address", firstInstance.address || "");
+      form.setValue("pincode", firstInstance.pincode || "");
+      form.setValue("pointOfContact", firstInstance.pointOfContact || "");
+      form.setValue("contactPhoneNumber", firstInstance.contactPhoneNumber || "");
+    }
+  }, [mode, hotelCheckResult, form]);
 
   const onSubmit = (data: AddHotelForm) => {
     // Validate based on mode
