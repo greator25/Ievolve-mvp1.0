@@ -91,6 +91,24 @@ const quickGenerateData = async () => {
         availableRooms: 60 + (hotelIndex * 14)
       }));
     }
+    
+    // Instance 4: Past dates (expired) for demonstration
+    if (hotelIndex < 2) {
+      hotelPromises.push(db.insert(hotels).values({
+        hotelId: baseHotelId,
+        instanceCode: '4',
+        hotelName,
+        location,
+        district,
+        address,
+        pincode,
+        startDate: new Date(2025, 6, 1), // July 1, 2025 (expired)
+        endDate: new Date(2025, 6, 15), // July 15, 2025 (expired)
+        totalRooms: 100 + (hotelIndex * 20),
+        occupiedRooms: 0, // All checked out since expired
+        availableRooms: 100 + (hotelIndex * 20)
+      }));
+    }
   }
   
   await Promise.all(hotelPromises);

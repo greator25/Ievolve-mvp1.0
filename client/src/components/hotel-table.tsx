@@ -30,6 +30,7 @@ interface Hotel {
   startDate: string;
   endDate: string;
   createdAt: string;
+  status: "upcoming" | "active" | "expired";
 }
 
 // Remove GroupedHotel interface since we'll display individual instances
@@ -53,6 +54,19 @@ const getOccupancyStatus = (occupied: number, total: number) => {
   if (percentage >= 70) return { label: "High", variant: "warning", color: "yellow-500" };
   if (percentage >= 30) return { label: "Medium", variant: "default", color: "blue-500" };
   return { label: "Low", variant: "success", color: "green-500" };
+};
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "active":
+      return { label: "Active", variant: "default", color: "green" };
+    case "upcoming":
+      return { label: "Upcoming", variant: "secondary", color: "blue" };
+    case "expired":
+      return { label: "Expired", variant: "outline", color: "gray" };
+    default:
+      return { label: "Unknown", variant: "outline", color: "gray" };
+  }
 };
 
 export default function HotelTable() {
@@ -192,9 +206,7 @@ export default function HotelTable() {
     
     const matchesDistrict = districtFilter === "all" || hotel.district === districtFilter;
     
-    const occupiedRooms = hotel.totalRooms - hotel.availableRooms;
-    const status = getOccupancyStatus(occupiedRooms, hotel.totalRooms);
-    const matchesStatus = statusFilter === "all" || status.label.toLowerCase() === statusFilter;
+    const matchesStatus = statusFilter === "all" || hotel.status === statusFilter;
     
     return matchesSearch && matchesDistrict && matchesStatus;
   });
@@ -238,15 +250,14 @@ export default function HotelTable() {
           </Select>
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-32">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="full">Full</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -324,13 +335,15 @@ export default function HotelTable() {
                       <TableCell>
                         <Badge 
                           variant={
-                            status.variant === 'destructive' ? 'destructive' :
-                            status.variant === 'warning' ? 'secondary' :
-                            status.variant === 'success' ? 'default' : 'outline'
+                            hotel.status === 'active' ? 'default' :
+                            hotel.status === 'upcoming' ? 'secondary' :
+                            hotel.status === 'expired' ? 'outline' : 'outline'
                           }
                           data-testid={`hotel-status-${hotel.id}`}
                         >
-                          {status.label}
+                          {hotel.status === 'active' ? 'Active' :
+                           hotel.status === 'upcoming' ? 'Upcoming' :
+                           hotel.status === 'expired' ? 'Expired' : 'Unknown'}
                         </Badge>
                       </TableCell>
                       

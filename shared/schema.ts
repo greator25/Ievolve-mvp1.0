@@ -9,6 +9,7 @@ export const userRoleEnum = pgEnum("user_role", ["admin", "coach"]);
 export const participantRoleEnum = pgEnum("participant_role", ["coach", "official", "player"]);
 export const checkinStatusEnum = pgEnum("checkin_status", ["pending", "checked_in", "checked_out"]);
 export const bookingTypeEnum = pgEnum("booking_type", ["regular", "pre_event", "post_event"]);
+export const hotelStatusEnum = pgEnum("hotel_status", ["upcoming", "active", "expired"]);
 
 // Users table (Admins and Coaches)
 export const users = pgTable("users", {
@@ -242,4 +243,25 @@ export const checkoutSchema = z.object({
 export type LoginRequest = z.infer<typeof loginSchema>;
 export type UploadFileRequest = z.infer<typeof uploadFileSchema>;
 export type CheckinRequest = z.infer<typeof checkinSchema>;
+
+// Hotel status calculation utility
+export function calculateHotelStatus(startDate: Date, endDate: Date): "upcoming" | "active" | "expired" {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Reset time to 00:00:00
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  
+  if (today < start) {
+    return "upcoming";
+  } else if (today > end) {
+    return "expired";
+  } else {
+    return "active";
+  }
+}
+
+// Extended hotel type with computed status
+export type HotelWithStatus = Hotel & {
+  status: "upcoming" | "active" | "expired";
+};
 export type CheckoutRequest = z.infer<typeof checkoutSchema>;

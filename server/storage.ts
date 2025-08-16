@@ -2,7 +2,8 @@ import {
   users, hotels, participants, reassignments, auditLog,
   type User, type InsertUser, type Hotel, type InsertHotel, type UpdateHotel,
   type Participant, type InsertParticipant, type Reassignment, 
-  type InsertReassignment, type AuditLog, type InsertAuditLog
+  type InsertReassignment, type AuditLog, type InsertAuditLog,
+  calculateHotelStatus, type HotelWithStatus
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, or, like, desc, asc, sql, isNotNull } from "drizzle-orm";
@@ -17,7 +18,7 @@ export interface IStorage {
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
 
   // Hotel management
-  getHotels(): Promise<Hotel[]>;
+  getHotels(filters?: HotelFilters): Promise<Hotel[]>;
   getHotelById(id: string): Promise<Hotel | undefined>;
   getHotelByHotelIdAndInstance(hotelId: string, instanceCode: string): Promise<Hotel | undefined>;
   createHotel(hotel: InsertHotel): Promise<Hotel>;
@@ -56,6 +57,17 @@ export interface ParticipantFilters {
   checkinStatus?: string;
   hotelId?: string;
   district?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface HotelFilters {
+  search?: string;
+  district?: string;
+  location?: string;
+  status?: "upcoming" | "active" | "expired";
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -120,8 +132,61 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getHotels(): Promise<Hotel[]> {
-    return await db.select().from(hotels).orderBy(asc(hotels.hotelId), asc(hotels.instanceCode));
+  async getHotels(filters?: HotelFilters): Promise<Hotel[]> {
+    let query = db.select().from(hotels);
+    const conditions = [];
+
+    if (filters?.search) {
+      conditions.push(
+        or(
+          like(hotels.hotelName, `%${filters.search}%`),
+          like(hotels.hotelId, `%${filters.search}%`),
+          like(hotels.address, `%${filters.search}%`)
+        )
+      );
+    }
+
+    if (filters?.district) {
+      conditions.push(eq(hotels.district, filters.district));
+    }
+
+    if (filters?.location) {
+      conditions.push(eq(hotels.location, filters.location));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    // Apply sorting
+    const sortBy = filters?.sortBy || 'hotelId';
+    const sortOrder = filters?.sortOrder || 'asc';
+    
+    if (sortBy === 'hotelId') {
+      query = sortOrder === 'desc' 
+        ? query.orderBy(desc(hotels.hotelId), asc(hotels.instanceCode))
+        : query.orderBy(asc(hotels.hotelId), asc(hotels.instanceCode));
+    } else if (sortBy === 'startDate') {
+      query = sortOrder === 'desc' 
+        ? query.orderBy(desc(hotels.startDate), asc(hotels.hotelId))
+        : query.orderBy(asc(hotels.startDate), asc(hotels.hotelId));
+    } else if (sortBy === 'endDate') {
+      query = sortOrder === 'desc' 
+        ? query.orderBy(desc(hotels.endDate), asc(hotels.hotelId))
+        : query.orderBy(asc(hotels.endDate), asc(hotels.hotelId));
+    }
+
+    let hotelResults = await query;
+
+    // Apply status filtering in JavaScript since it's computed
+    if (filters?.status) {
+      hotelResults = hotelResults.filter(hotel => {
+        const status = calculateHotelStatus(hotel.startDate, hotel.endDate);
+        return status === filters.status;
+      });
+    }
+
+    return hotelResults;
   }
 
   async getHotelById(id: string): Promise<Hotel | undefined> {

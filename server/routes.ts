@@ -10,7 +10,7 @@ import { UploadService } from "./services/upload";
 import { NotificationService } from "./services/notification";
 import { 
   loginSchema, uploadFileSchema, checkinSchema, checkoutSchema,
-  otpRequestSchema, otpVerifySchema, updateHotelSchema,
+  otpRequestSchema, otpVerifySchema, updateHotelSchema, calculateHotelStatus,
   type User, type Participant, type Hotel, type UpdateHotel 
 } from "@shared/schema";
 import multer from "multer";
@@ -320,8 +320,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/dashboard/hotels", requireAdmin, async (req, res) => {
     try {
-      const hotels = await storage.getHotels();
-      res.json(hotels);
+      const filters = req.query;
+      const hotels = await storage.getHotels(filters as any);
+      
+      // Add computed status to each hotel
+      const hotelsWithStatus = hotels.map(hotel => ({
+        ...hotel,
+        status: calculateHotelStatus(hotel.startDate, hotel.endDate)
+      }));
+      
+      res.json(hotelsWithStatus);
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get hotels" });
     }
