@@ -6,7 +6,7 @@ import {
   calculateHotelStatus, type HotelWithStatus
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, or, like, desc, asc, sql, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, lt, gt, or, like, desc, asc, sql, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // User management
