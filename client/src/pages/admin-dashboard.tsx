@@ -15,12 +15,14 @@ import UploadModal from "@/components/upload-modal";
 import ParticipantTable from "@/components/participant-table";
 import HotelTable from "@/components/hotel-table";
 import CheckoutBoard from "@/components/checkout-board";
+import AddHotelModal from "@/components/add-hotel-modal";
 
 import type { DashboardStats } from "@/lib/types";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [addHotelModalOpen, setAddHotelModalOpen] = useState(false);
   const [uploadType, setUploadType] = useState<"hotel_inventory" | "coaches_officials" | "players" | "">("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -355,6 +357,16 @@ export default function AdminDashboard() {
                     Upload hotel inventory and manage accommodation bookings
                   </p>
                 </div>
+                <div className="mt-4 flex md:mt-0 md:ml-4">
+                  <Button
+                    onClick={() => setAddHotelModalOpen(true)}
+                    className="flex items-center space-x-2"
+                    data-testid="button-add-hotel"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Hotel</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -494,6 +506,12 @@ export default function AdminDashboard() {
         onOpenChange={setUploadModalOpen}
         uploadType={uploadType as "hotel_inventory" | "coaches_officials" | "players" | undefined}
         onUploadTypeChange={setUploadType}
+      />
+
+      {/* Add Hotel Modal */}
+      <AddHotelModal
+        open={addHotelModalOpen}
+        onOpenChange={setAddHotelModalOpen}
       />
     </div>
   );

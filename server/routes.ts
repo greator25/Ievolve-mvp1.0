@@ -361,6 +361,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check hotel ID availability and suggest instance code
+  app.get("/api/admin/hotels/check-id", requireAdmin, async (req, res) => {
+    try {
+      const { hotelId } = req.query;
+      
+      if (!hotelId || typeof hotelId !== 'string') {
+        return res.status(400).json({ message: "Hotel ID is required" });
+      }
+
+      const existingHotels = await storage.getHotelsByHotelId(hotelId);
+      const exists = existingHotels.length > 0;
+      
+      // Calculate next available instance code
+      const existingInstanceCodes = existingHotels.map((h: any) => parseInt(h.instanceCode)).filter((code: number) => !isNaN(code));
+      const maxInstanceCode = existingInstanceCodes.length > 0 ? Math.max(...existingInstanceCodes) : 0;
+      const suggestedInstanceCode = maxInstanceCode + 1;
+
+      res.json({
+        exists,
+        suggestedInstanceCode: suggestedInstanceCode.toString(),
+        existingInstances: existingHotels.map((h: any) => ({
+          id: h.id,
+          instanceCode: h.instanceCode,
+          startDate: h.startDate,
+          endDate: h.endDate
+        }))
+      });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to check hotel ID" });
+    }
+  });
+
+  // Add new hotel manually
+  app.post("/api/admin/hotels", requireAdmin, async (req, res) => {
+    try {
+      console.log('Manual hotel creation request:', req.body);
+      
+      // Validate the request body
+      const hotelData = {
+        hotelId: req.body.hotelId,
+        hotelName: req.body.hotelName,
+        location: req.body.location,
+        district: req.body.district,
+        address: req.body.address,
+        pincode: req.body.pincode,
+        startDate: new Date(req.body.startDate + 'T00:00:00.000Z'),
+        endDate: new Date(req.body.endDate + 'T00:00:00.000Z'),
+        totalRooms: parseInt(req.body.totalRooms),
+        availableRooms: parseInt(req.body.availableRooms),
+        pointOfContact: req.body.pointOfContact || '',
+        contactPhoneNumber: req.body.contactPhoneNumber || '',
+        occupiedRooms: 0
+      };
+
+      // Check if hotel ID already exists and get next instance code
+      const existingHotels = await storage.getHotelsByHotelId(hotelData.hotelId);
+      const existingInstanceCodes = existingHotels.map((h: any) => parseInt(h.instanceCode)).filter((code: number) => !isNaN(code));
+      const maxInstanceCode = existingInstanceCodes.length > 0 ? Math.max(...existingInstanceCodes) : 0;
+      const instanceCode = (maxInstanceCode + 1).toString();
+
+      // Check for date conflicts with existing instances
+      const conflictingHotels = await storage.checkHotelDateConflicts(
+        hotelData.hotelId,
+        instanceCode, // This will be the new instance, so it won't conflict with itself
+        hotelData.startDate,
+        hotelData.endDate
+      );
+
+      if (conflictingHotels.length > 0) {
+        const conflictDetails = conflictingHotels.map(h => {
+          const start = new Date(h.startDate).toLocaleDateString();
+          const end = new Date(h.endDate).toLocaleDateString();
+          return `Instance ${h.instanceCode} (${start} - ${end})`;
+        }).join(', ');
+        
+        return res.status(400).json({ 
+          message: `Date range conflicts with existing hotel instances: ${conflictDetails}. Please choose non-overlapping dates.`,
+          conflicts: conflictingHotels.map(h => ({ 
+            id: h.id, 
+            instanceCode: h.instanceCode, 
+            startDate: h.startDate, 
+            endDate: h.endDate 
+          }))
+        });
+      }
+
+      // Create the hotel with the calculated instance code
+      const newHotel = await storage.createHotel({
+        ...hotelData,
+        instanceCode
+      });
+
+      // Create audit log entry
+      const user = req.session.user;
+      if (user) {
+        await storage.createAuditLog({
+          userId: user.id,
+          actionType: 'create',
+          targetEntity: 'hotel',
+          targetId: newHotel.id,
+          details: {
+            action: 'manual_hotel_creation',
+            hotelId: hotelData.hotelId,
+            instanceCode: instanceCode,
+            hotelName: hotelData.hotelName,
+            location: hotelData.location,
+            district: hotelData.district
+          }
+        });
+      }
+
+      console.log('Hotel created successfully:', newHotel);
+      res.status(201).json(newHotel);
+    } catch (error) {
+      console.error('Hotel creation error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to create hotel" });
+    }
+  });
+
   // Hotel management endpoints
   app.get("/api/admin/hotels/:id", requireAdmin, async (req, res) => {
     try {

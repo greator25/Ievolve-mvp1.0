@@ -21,6 +21,7 @@ export interface IStorage {
   getHotels(filters?: HotelFilters): Promise<Hotel[]>;
   getHotelById(id: string): Promise<Hotel | undefined>;
   getHotelByHotelIdAndInstance(hotelId: string, instanceCode: string): Promise<Hotel | undefined>;
+  getHotelsByHotelId(hotelId: string): Promise<Hotel[]>;
   createHotel(hotel: InsertHotel): Promise<Hotel>;
   updateHotel(id: string, updates: Partial<InsertHotel>): Promise<Hotel | undefined>;
   updateHotelsByHotelId(hotelId: string, updates: Partial<InsertHotel>): Promise<Hotel[]>;
@@ -240,6 +241,10 @@ export class DatabaseStorage implements IStorage {
       .from(hotels)
       .where(and(eq(hotels.hotelId, hotelId), eq(hotels.instanceCode, instanceCode)));
     return hotel || undefined;
+  }
+
+  async getHotelsByHotelId(hotelId: string): Promise<Hotel[]> {
+    return await db.select().from(hotels).where(eq(hotels.hotelId, hotelId));
   }
 
   async createHotel(insertHotel: InsertHotel): Promise<Hotel> {
