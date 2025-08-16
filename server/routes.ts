@@ -320,8 +320,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/dashboard/hotels", requireAdmin, async (req, res) => {
     try {
-      const filters = req.query;
-      const hotels = await storage.getHotels(filters as any);
+      const { search, district, status, sortBy, sortOrder } = req.query;
+      
+      const filters = {
+        search: search as string,
+        district: district as string,
+        status: status as "upcoming" | "active" | "expired",
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as "asc" | "desc"
+      };
+      
+      // Remove undefined values
+      Object.keys(filters).forEach(key => {
+        if (filters[key as keyof typeof filters] === undefined || filters[key as keyof typeof filters] === "") {
+          delete filters[key as keyof typeof filters];
+        }
+      });
+      
+      const hotels = await storage.getHotels(filters);
       
       // Add computed status to each hotel
       const hotelsWithStatus = hotels.map(hotel => ({

@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Building2, MapPin, Users, Bed, Edit3, Calendar } from "lucide-react";
+import { Search, Building2, MapPin, Users, Bed, Edit3, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface Hotel {
@@ -73,6 +73,8 @@ export default function HotelTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [districtFilter, setDistrictFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState<string>("hotelId");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
@@ -80,7 +82,25 @@ export default function HotelTable() {
   const queryClient = useQueryClient();
 
   const { data: hotels = [], isLoading, error } = useQuery<Hotel[]>({
-    queryKey: ["/api/admin/dashboard/hotels"],
+    queryKey: ["/api/admin/dashboard/hotels", searchTerm, districtFilter, statusFilter, sortField, sortOrder],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (districtFilter !== "all") params.append('district', districtFilter);
+      if (statusFilter !== "all") params.append('status', statusFilter);
+      if (sortField) params.append('sortBy', sortField);
+      if (sortOrder) params.append('sortOrder', sortOrder);
+      
+      const response = await fetch(`/api/admin/dashboard/hotels?${params.toString()}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch hotels');
+      }
+      
+      return response.json();
+    }
   });
 
   // Form for hotel editing
@@ -162,6 +182,26 @@ export default function HotelTable() {
     updateHotelMutation.mutate({ id: editingHotel.id, updates: data });
   };
 
+  // Handle column sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  // Get sort icon for column header
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 opacity-50" />;
+    }
+    return sortOrder === "asc" 
+      ? <ArrowUp className="h-4 w-4" />
+      : <ArrowDown className="h-4 w-4" />;
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -192,24 +232,11 @@ export default function HotelTable() {
     );
   }
 
-  // Display each hotel instance as a separate row
+  // Display hotels directly from API (filtering and sorting handled server-side)
   const displayHotels = hotels;
 
-  // Get unique districts for filter
+  // Get unique districts for filter (from current results)
   const districts = Array.from(new Set(hotels.map(h => h.district)));
-
-  // Filter hotels based on search and filters
-  const filteredHotels = displayHotels.filter(hotel => {
-    const matchesSearch = hotel.hotelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         hotel.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         hotel.hotelId.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDistrict = districtFilter === "all" || hotel.district === districtFilter;
-    
-    const matchesStatus = statusFilter === "all" || hotel.status === statusFilter;
-    
-    return matchesSearch && matchesDistrict && matchesStatus;
-  });
 
   return (
     <Card>
@@ -268,24 +295,84 @@ export default function HotelTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Hotel Details</TableHead>
-                <TableHead className="w-[150px]">Location</TableHead>
-                <TableHead className="w-[120px]">Occupancy</TableHead>
-                <TableHead className="w-[100px]">Status</TableHead>
-                <TableHead className="w-[100px]">Instance</TableHead>
-                <TableHead className="w-[150px]">Date Range</TableHead>
+                <TableHead className="w-[200px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("hotelName")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-hotel-name"
+                  >
+                    Hotel Details
+                    {getSortIcon("hotelName")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[150px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("location")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-location"
+                  >
+                    Location
+                    {getSortIcon("location")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[120px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("occupiedRooms")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-occupancy"
+                  >
+                    Occupancy
+                    {getSortIcon("occupiedRooms")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[100px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("status")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-status"
+                  >
+                    Status
+                    {getSortIcon("status")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[100px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("instanceCode")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-instance"
+                  >
+                    Instance
+                    {getSortIcon("instanceCode")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[150px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("startDate")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-date"
+                  >
+                    Date Range
+                    {getSortIcon("startDate")}
+                  </Button>
+                </TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredHotels.length === 0 ? (
+              {displayHotels.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    {displayHotels.length === 0 ? "No hotels found" : "No hotels match the current filters"}
+                    No hotels found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredHotels.map((hotel) => {
+                displayHotels.map((hotel) => {
                   const occupiedRooms = hotel.totalRooms - hotel.availableRooms;
                   const occupancyPercentage = Math.round((occupiedRooms / hotel.totalRooms) * 100);
                   const status = getOccupancyStatus(occupiedRooms, hotel.totalRooms);
@@ -384,9 +471,14 @@ export default function HotelTable() {
           </Table>
         </div>
         
-        {filteredHotels.length > 0 && (
+        {displayHotels.length > 0 && (
           <div className="mt-4 text-sm text-gray-500 border-t pt-4">
-            Showing {filteredHotels.length} of {displayHotels.length} hotel instances
+            Showing {displayHotels.length} hotel instances
+            {sortField && (
+              <span className="ml-2 text-xs">
+                • Sorted by {sortField} ({sortOrder === "asc" ? "ascending" : "descending"})
+              </span>
+            )}
           </div>
         )}
       </CardContent>

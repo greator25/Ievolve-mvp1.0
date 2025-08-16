@@ -158,25 +158,57 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions));
     }
 
-    // Apply sorting
+    let hotelResults = await query;
+
+    // Apply sorting in JavaScript for now (to avoid TypeScript complexity)
     const sortBy = filters?.sortBy || 'hotelId';
     const sortOrder = filters?.sortOrder || 'asc';
     
-    if (sortBy === 'hotelId') {
-      query = sortOrder === 'desc' 
-        ? query.orderBy(desc(hotels.hotelId), asc(hotels.instanceCode))
-        : query.orderBy(asc(hotels.hotelId), asc(hotels.instanceCode));
-    } else if (sortBy === 'startDate') {
-      query = sortOrder === 'desc' 
-        ? query.orderBy(desc(hotels.startDate), asc(hotels.hotelId))
-        : query.orderBy(asc(hotels.startDate), asc(hotels.hotelId));
-    } else if (sortBy === 'endDate') {
-      query = sortOrder === 'desc' 
-        ? query.orderBy(desc(hotels.endDate), asc(hotels.hotelId))
-        : query.orderBy(asc(hotels.endDate), asc(hotels.hotelId));
-    }
-
-    let hotelResults = await query;
+    hotelResults.sort((a, b) => {
+      let aVal: any, bVal: any;
+      
+      switch (sortBy) {
+        case 'hotelName':
+          aVal = a.hotelName;
+          bVal = b.hotelName;
+          break;
+        case 'location':
+          aVal = a.location;
+          bVal = b.location;
+          break;
+        case 'startDate':
+          aVal = new Date(a.startDate);
+          bVal = new Date(b.startDate);
+          break;
+        case 'endDate':
+          aVal = new Date(a.endDate);
+          bVal = b.endDate;
+          break;
+        case 'totalRooms':
+          aVal = a.totalRooms;
+          bVal = b.totalRooms;
+          break;
+        case 'occupiedRooms':
+          aVal = a.occupiedRooms;
+          bVal = b.occupiedRooms;
+          break;
+        case 'instanceCode':
+          aVal = parseInt(a.instanceCode);
+          bVal = parseInt(b.instanceCode);
+          break;
+        default:
+          aVal = a.hotelId;
+          bVal = b.hotelId;
+      }
+      
+      if (typeof aVal === 'string') {
+        const result = aVal.localeCompare(bVal);
+        return sortOrder === 'desc' ? -result : result;
+      } else {
+        const result = aVal - bVal;
+        return sortOrder === 'desc' ? -result : result;
+      }
+    });
 
     // Apply status filtering in JavaScript since it's computed
     if (filters?.status) {
