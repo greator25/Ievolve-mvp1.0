@@ -396,10 +396,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = updates.endDate;
 
       // Only check for date conflicts if dates are actually being changed
-      const datesChanged = (
-        startDate.getTime() !== new Date(originalHotel.startDate).getTime() ||
-        endDate.getTime() !== new Date(originalHotel.endDate).getTime()
-      );
+      // Compare dates as YYYY-MM-DD strings to avoid timezone issues
+      const originalStartStr = new Date(originalHotel.startDate).toISOString().split('T')[0];
+      const originalEndStr = new Date(originalHotel.endDate).toISOString().split('T')[0];
+      const newStartStr = startDate.toISOString().split('T')[0];
+      const newEndStr = endDate.toISOString().split('T')[0];
+      
+      const datesChanged = (originalStartStr !== newStartStr || originalEndStr !== newEndStr);
 
       let conflictingHotels: any[] = [];
       if (datesChanged) {

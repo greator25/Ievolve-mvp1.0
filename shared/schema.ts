@@ -157,8 +157,14 @@ export const updateHotelSchema = createInsertSchema(hotels).omit({
   createdAt: true,
 }).extend({
   // Override date fields to accept strings and transform to Date objects
-  startDate: z.string().min(1, "Start date is required").transform((str) => new Date(str)),
-  endDate: z.string().min(1, "End date is required").transform((str) => new Date(str)),
+  startDate: z.string().min(1, "Start date is required").transform((str) => {
+    const date = new Date(str + 'T00:00:00.000Z');
+    return date;
+  }),
+  endDate: z.string().min(1, "End date is required").transform((str) => {
+    const date = new Date(str + 'T00:00:00.000Z');
+    return date;
+  }),
 }).refine((data) => data.endDate > data.startDate, {
   message: "End date must be after start date",
   path: ["endDate"],
