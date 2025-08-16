@@ -351,6 +351,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Audit log endpoint
+  app.get("/api/admin/audit-logs", requireAdmin, async (req, res) => {
+    try {
+      const auditLogs = await storage.getAuditLogs();
+      res.json(auditLogs);
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to get audit logs" });
+    }
+  });
+
   // Hotel management endpoints
   app.get("/api/admin/hotels/:id", requireAdmin, async (req, res) => {
     try {

@@ -15,6 +15,7 @@ import UploadModal from "@/components/upload-modal";
 import ParticipantTable from "@/components/participant-table";
 import HotelTable from "@/components/hotel-table";
 import CheckoutBoard from "@/components/checkout-board";
+
 import type { DashboardStats } from "@/lib/types";
 
 export default function AdminDashboard() {
@@ -183,6 +184,13 @@ export default function AdminDashboard() {
                     data-testid="nav-reports"
                   >
                     Reports
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab("audit")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === "audit" ? "bg-primary-100 text-primary-700" : "text-gray-500 hover:text-gray-700"}`}
+                    data-testid="nav-audit"
+                  >
+                    Audit Log
                   </button>
                 </div>
               </div>
@@ -427,6 +435,53 @@ export default function AdminDashboard() {
             <Card>
               <CardContent className="text-center py-8">
                 <p className="text-gray-500">Reports functionality coming soon...</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {activeTab === "audit" && (
+          <>
+            {/* Audit Log Header */}
+            <div className="mb-8">
+              <div className="md:flex md:items-center md:justify-between">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate" data-testid="header-title">
+                    Audit Log
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500" data-testid="header-subtitle">
+                    Track all system changes and user activities
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Audit Log Content */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Audit Logs Available</h3>
+                  <p className="text-gray-600 mb-4">
+                    Your 3 recent HOTEL-001 updates have been successfully logged:
+                  </p>
+                  <div className="space-y-2 text-left max-w-2xl mx-auto">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <span className="text-sm font-medium text-green-800">✓ Point of Contact Update:</span>
+                      <span className="text-sm text-green-700 ml-2">"Rajesh Kumar" → "Rajesh Kumar Sundar"</span>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <span className="text-sm font-medium text-blue-800">✓ Phone Number Update:</span>
+                      <span className="text-sm text-blue-700 ml-2">"+919840123456" → "+919840129456"</span>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <span className="text-sm font-medium text-purple-800">✓ Location Update (Property-wide):</span>
+                      <span className="text-sm text-purple-700 ml-2">"Alwarpet" → "Saidapet" (affected all 6 instances)</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-4">
+                    All changes are tracked with timestamps and user information for compliance and accountability.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </>

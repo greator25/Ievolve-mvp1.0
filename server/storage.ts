@@ -422,35 +422,24 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
 
-  async getAuditLogs(filters: AuditFilters = {}): Promise<AuditLog[]> {
-    let query = db.select().from(auditLog);
-    const conditions = [];
-
-    if (filters.userId) {
-      conditions.push(eq(auditLog.userId, filters.userId));
-    }
-
-    if (filters.actionType) {
-      conditions.push(eq(auditLog.actionType, filters.actionType));
-    }
-
-    if (filters.targetEntity) {
-      conditions.push(eq(auditLog.targetEntity, filters.targetEntity));
-    }
-
-    if (filters.fromDate) {
-      conditions.push(gte(auditLog.timestamp, filters.fromDate));
-    }
-
-    if (filters.toDate) {
-      conditions.push(lte(auditLog.timestamp, filters.toDate));
-    }
-
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    return await query.orderBy(desc(auditLog.timestamp)).execute();
+  async getAuditLogs(filters: AuditFilters = {}): Promise<any[]> {
+    const auditLogs = await db
+      .select({
+        id: auditLog.id,
+        actionType: auditLog.actionType,
+        targetEntity: auditLog.targetEntity,
+        targetId: auditLog.targetId,
+        details: auditLog.details,
+        timestamp: auditLog.timestamp,
+        userName: users.name,
+        userEmail: users.email
+      })
+      .from(auditLog)
+      .leftJoin(users, eq(auditLog.userId, users.id))
+      .orderBy(desc(auditLog.timestamp))
+      .limit(100);
+    
+    return auditLogs;
   }
 
   async getDashboardStats(date?: string): Promise<DashboardStats> {
