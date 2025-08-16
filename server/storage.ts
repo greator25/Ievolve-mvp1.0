@@ -196,6 +196,14 @@ export class DatabaseStorage implements IStorage {
           aVal = parseInt(a.instanceCode);
           bVal = parseInt(b.instanceCode);
           break;
+        case 'pointOfContact':
+          aVal = a.pointOfContact || '';
+          bVal = b.pointOfContact || '';
+          break;
+        case 'contactPhoneNumber':
+          aVal = a.contactPhoneNumber || '';
+          bVal = b.contactPhoneNumber || '';
+          break;
         default:
           aVal = a.hotelId;
           bVal = b.hotelId;

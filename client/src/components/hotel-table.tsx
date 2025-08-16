@@ -23,6 +23,8 @@ interface Hotel {
   district: string;
   address: string;
   pincode: string;
+  pointOfContact?: string;
+  contactPhoneNumber?: string;
   totalRooms: number;
   availableRooms: number;
   occupiedRooms: number;
@@ -42,6 +44,8 @@ const hotelEditSchema = z.object({
   district: z.string().min(1, "District is required"),
   address: z.string().min(1, "Address is required"),
   pincode: z.string().min(6, "Pincode must be at least 6 digits"),
+  pointOfContact: z.string().optional(),
+  contactPhoneNumber: z.string().optional(),
   totalRooms: z.number().min(1, "Must have at least 1 room"),
   availableRooms: z.number().min(0, "Available rooms cannot be negative"),
   startDate: z.string().min(1, "Start date is required"),
@@ -112,6 +116,8 @@ export default function HotelTable() {
       district: "",
       address: "",
       pincode: "",
+      pointOfContact: "",
+      contactPhoneNumber: "",
       totalRooms: 0,
       availableRooms: 0,
       startDate: "",
@@ -168,6 +174,8 @@ export default function HotelTable() {
       district: hotel.district,
       address: hotel.address,
       pincode: hotel.pincode,
+      pointOfContact: hotel.pointOfContact || "",
+      contactPhoneNumber: hotel.contactPhoneNumber || "",
       totalRooms: hotel.totalRooms,
       availableRooms: hotel.availableRooms,
       startDate: new Date(hotel.startDate).toISOString().split('T')[0],
@@ -306,7 +314,18 @@ export default function HotelTable() {
                     {getSortIcon("hotelName")}
                   </Button>
                 </TableHead>
-                <TableHead className="w-[150px]">
+                <TableHead className="w-[120px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("district")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-district"
+                  >
+                    District
+                    {getSortIcon("district")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[120px]">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("location")}
@@ -315,6 +334,28 @@ export default function HotelTable() {
                   >
                     Location
                     {getSortIcon("location")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[150px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("pointOfContact")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-contact"
+                  >
+                    Point of Contact
+                    {getSortIcon("pointOfContact")}
+                  </Button>
+                </TableHead>
+                <TableHead className="w-[130px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("contactPhoneNumber")}
+                    className="h-auto p-0 font-medium hover:bg-transparent"
+                    data-testid="sort-phone"
+                  >
+                    Contact Phone
+                    {getSortIcon("contactPhoneNumber")}
                   </Button>
                 </TableHead>
                 <TableHead className="w-[120px]">
@@ -367,7 +408,7 @@ export default function HotelTable() {
             <TableBody>
               {displayHotels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                     No hotels found
                   </TableCell>
                 </TableRow>
@@ -391,12 +432,33 @@ export default function HotelTable() {
                       </TableCell>
                       
                       <TableCell>
+                        <div className="text-sm font-medium">{hotel.district}</div>
+                      </TableCell>
+                      
+                      <TableCell>
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <div className="text-sm font-medium">{hotel.location}</div>
-                            <div className="text-xs text-gray-500">{hotel.district}</div>
-                          </div>
+                          <span className="text-sm">{hotel.location}</span>
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <div className="text-sm">
+                          {hotel.pointOfContact ? (
+                            <div className="font-medium">{hotel.pointOfContact}</div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">Not provided</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <div className="text-sm">
+                          {hotel.contactPhoneNumber ? (
+                            <div>{hotel.contactPhoneNumber}</div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">Not provided</span>
+                          )}
                         </div>
                       </TableCell>
                       
@@ -601,6 +663,34 @@ export default function HotelTable() {
                       <FormLabel>Pincode</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-hotel-pincode" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="pointOfContact"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Point of Contact</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-hotel-contact" placeholder="Hotel staff contact person" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="contactPhoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Phone Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-hotel-phone" placeholder="Contact person's phone" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

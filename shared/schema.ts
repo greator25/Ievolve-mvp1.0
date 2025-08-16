@@ -31,10 +31,12 @@ export const hotels = pgTable("hotels", {
   hotelId: text("hotel_id").notNull(), // CHN001, MDU005, etc.
   instanceCode: text("instance_code").notNull(), // 1, 2, 3, etc.
   hotelName: text("hotel_name").notNull(),
-  location: text("location").notNull(),
-  district: text("district").notNull(),
+  location: text("location").notNull(), // Alwarpet, Teynampet, T.Nagar
+  district: text("district").notNull(), // Chennai, Coimbatore, Madurai
   address: text("address").notNull(),
   pincode: text("pincode").notNull(),
+  pointOfContact: text("point_of_contact"), // Hotel staff contact person
+  contactPhoneNumber: text("contact_phone_number"), // Hotel staff phone
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   totalRooms: integer("total_rooms").notNull(),

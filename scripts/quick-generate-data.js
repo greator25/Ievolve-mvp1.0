@@ -34,11 +34,21 @@ const quickGenerateData = async () => {
   const hotelPromises = [];
   
   // Create 5 unique hotels, each with 2-3 instances at different date ranges
+  const hotelDetails = [
+    { location: 'Alwarpet', district: 'Chennai', contact: 'Rajesh Kumar', phone: '+919840123456' },
+    { location: 'Race Course', district: 'Coimbatore', contact: 'Priya Sharma', phone: '+919841234567' },
+    { location: 'Anna Nagar', district: 'Madurai', contact: 'Arun Pandiyan', phone: '+919842345678' },
+    { location: 'Junction', district: 'Salem', contact: 'Lakshmi Devi', phone: '+919843456789' },
+    { location: 'Town Hall', district: 'Tirunelveli', contact: 'Karthik Raj', phone: '+919844567890' }
+  ];
+  
   for (let hotelIndex = 0; hotelIndex < 5; hotelIndex++) {
     const baseHotelId = `HOTEL-${String(hotelIndex + 1).padStart(3, '0')}`;
-    const hotelName = `${hotelChains[hotelIndex % hotelChains.length]} ${districts[hotelIndex % districts.length]}`;
-    const location = districts[hotelIndex % districts.length];
-    const district = districts[hotelIndex % districts.length];
+    const hotelName = `${hotelChains[hotelIndex % hotelChains.length]} ${hotelDetails[hotelIndex].district}`;
+    const location = hotelDetails[hotelIndex].location;
+    const district = hotelDetails[hotelIndex].district;
+    const pointOfContact = hotelDetails[hotelIndex].contact;
+    const contactPhoneNumber = hotelDetails[hotelIndex].phone;
     const address = `${hotelIndex + 1}, Anna Salai, ${district}`;
     const pincode = `600${String(hotelIndex).padStart(3, '0')}`;
     
@@ -51,6 +61,8 @@ const quickGenerateData = async () => {
       district,
       address,
       pincode,
+      pointOfContact,
+      contactPhoneNumber,
       startDate: new Date(2025, 8, 1), // September 1, 2025
       endDate: new Date(2025, 8, 15), // September 15, 2025
       totalRooms: 100 + (hotelIndex * 20),
@@ -67,6 +79,8 @@ const quickGenerateData = async () => {
       district,
       address,
       pincode,
+      pointOfContact,
+      contactPhoneNumber,
       startDate: new Date(2025, 8, 20), // September 20, 2025
       endDate: new Date(2025, 8, 30), // September 30, 2025
       totalRooms: 100 + (hotelIndex * 20),
@@ -84,6 +98,8 @@ const quickGenerateData = async () => {
         district,
         address,
         pincode,
+        pointOfContact,
+        contactPhoneNumber,
         startDate: new Date(2025, 9, 5), // October 5, 2025
         endDate: new Date(2025, 9, 20), // October 20, 2025
         totalRooms: 100 + (hotelIndex * 20),
@@ -102,6 +118,8 @@ const quickGenerateData = async () => {
         district,
         address,
         pincode,
+        pointOfContact,
+        contactPhoneNumber,
         startDate: new Date(2025, 6, 1), // July 1, 2025 (expired)
         endDate: new Date(2025, 6, 15), // July 15, 2025 (expired)
         totalRooms: 100 + (hotelIndex * 20),
@@ -120,6 +138,8 @@ const quickGenerateData = async () => {
         district,
         address,
         pincode,
+        pointOfContact,
+        contactPhoneNumber,
         startDate: new Date(2025, 7, 1), // August 1, 2025 (active now)
         endDate: new Date(2025, 8, 30), // September 30, 2025 (active now)
         totalRooms: 100 + (hotelIndex * 20),
@@ -138,6 +158,8 @@ const quickGenerateData = async () => {
         district,
         address,
         pincode,
+        pointOfContact,
+        contactPhoneNumber,
         startDate: new Date(2025, 7, 10), // August 10, 2025 (active now)
         endDate: new Date(2025, 7, 25), // August 25, 2025 (active now)
         totalRooms: 100 + (hotelIndex * 20),
