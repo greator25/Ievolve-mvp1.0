@@ -295,9 +295,14 @@ export class DatabaseStorage implements IStorage {
           eq(hotels.hotelId, hotelId),
           sql`${hotels.instanceCode} != ${excludeInstanceCode}`,
           or(
-            and(gte(hotels.startDate, startDate), lte(hotels.startDate, endDate)),
-            and(gte(hotels.endDate, startDate), lte(hotels.endDate, endDate)),
-            and(lte(hotels.startDate, startDate), gte(hotels.endDate, endDate))
+            // New range starts during existing range
+            and(gte(hotels.startDate, startDate), lt(hotels.startDate, endDate)),
+            // New range ends during existing range  
+            and(gt(hotels.endDate, startDate), lte(hotels.endDate, endDate)),
+            // New range completely encompasses existing range
+            and(lte(hotels.startDate, startDate), gte(hotels.endDate, endDate)),
+            // Existing range completely encompasses new range
+            and(gte(hotels.startDate, startDate), lte(hotels.endDate, endDate))
           )
         )
       );

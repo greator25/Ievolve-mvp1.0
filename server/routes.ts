@@ -394,8 +394,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       if (conflictingHotels.length > 0) {
+        const conflictDetails = conflictingHotels.map(h => {
+          const start = new Date(h.startDate).toLocaleDateString();
+          const end = new Date(h.endDate).toLocaleDateString();
+          return `Instance ${h.instanceCode} (${start} - ${end})`;
+        }).join(', ');
+        
         return res.status(400).json({ 
-          message: "Date range conflicts with existing hotel instances",
+          message: `Date range conflicts with existing hotel instances: ${conflictDetails}. Please choose non-overlapping dates.`,
           conflicts: conflictingHotels.map(h => ({ 
             id: h.id, 
             instanceCode: h.instanceCode, 
