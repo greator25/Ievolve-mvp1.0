@@ -166,13 +166,16 @@ Create multiple instances for same hotels:
 - Lakshmi Residency
 - Kaveri Lodge
 
-## Sample Output Structure
+## Expected Output Format
+
+**Important**: Start your PSV file with the exact header row, then add the data rows.
 
 ```
 hotelId|instanceCode|hotelName|location|district|address|pincode|pointOfContact|contactPhoneNumber|startDate|endDate|totalRooms|occupiedRooms|availableRooms
 TR-001|1|The Leela Palace Chennai|T.Nagar|Chennai|123 Anna Salai, T.Nagar|600017|Mr. Rajesh Kumar|+91 9876543210|2025-08-15|2025-08-22|200|0|200
 TR-001|2|The Leela Palace Chennai|T.Nagar|Chennai|123 Anna Salai, T.Nagar|600017|Mr. Rajesh Kumar|+91 9876543210|2025-10-01|2025-10-15|200|15|185
 CHN-005|1|ITC Grand Chola|Guindy|Chennai|45 Mount Road, Guindy|600032|Ms. Priya Sharma|044-28234567|2025-09-10|2025-09-25|250|25|225
+BLR-010|1|Taj West End|Brigade Road|Bangalore Urban|25 Race Course Road, Bangalore|560001|Mr. Suresh Babu|+91 8765432109|2025-11-01|2025-11-14|180|0|180
 ```
 
 ## Quality Checklist
@@ -198,11 +201,17 @@ CHN-005|1|ITC Grand Chola|Guindy|Chennai|45 Mount Road, Guindy|600032|Ms. Priya 
 
 ## Final Instructions
 
-1. **Generate exactly 25-30 records** covering all scenarios
-2. **Include 5-7 hotels with multiple instances** to test instance logic
-3. **Ensure data realism** - use actual Tamil Nadu locations and realistic hotel names
-4. **Test edge cases** - include minimum/maximum values and boundary conditions
-5. **Maintain consistency** - same hotel properties across instances
-6. **Validate output** - double-check all business rules and constraints
+1. **Start with the header row**: Always begin output with the exact column names as specified
+2. **Generate exactly 25-30 records** covering all scenarios
+3. **Include 5-7 hotels with multiple instances** to test instance logic
+4. **Ensure data realism** - use actual Tamil Nadu locations and realistic hotel names
+5. **Test edge cases** - include minimum/maximum values and boundary conditions
+6. **Maintain consistency** - same hotel properties across instances
+7. **Validate output** - double-check all business rules and constraints
+
+**Critical**: Your output must be ready-to-use PSV format starting with:
+```
+hotelId|instanceCode|hotelName|location|district|address|pincode|pointOfContact|contactPhoneNumber|startDate|endDate|totalRooms|occupiedRooms|availableRooms
+```
 
 Create comprehensive test data that thoroughly validates the hotel inventory system while maintaining realistic Indian hospitality industry context.
