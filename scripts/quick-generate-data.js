@@ -29,28 +29,70 @@ const quickGenerateData = async () => {
     isActive: true
   });
   
-  // 2. Create 10 sample hotels
-  console.log('🏨 Creating 10 hotels...');
+  // 2. Create hotels with multiple instances and different date ranges
+  console.log('🏨 Creating hotels with multiple instances...');
   const hotelPromises = [];
-  for (let i = 0; i < 10; i++) {
-    const startDate = new Date(2025, 8, 1); // September 1, 2025
-    const endDate = new Date(2025, 8, 15); // September 15, 2025
+  
+  // Create 5 unique hotels, each with 2-3 instances at different date ranges
+  for (let hotelIndex = 0; hotelIndex < 5; hotelIndex++) {
+    const baseHotelId = `HOTEL-${String(hotelIndex + 1).padStart(3, '0')}`;
+    const hotelName = `${hotelChains[hotelIndex % hotelChains.length]} ${districts[hotelIndex % districts.length]}`;
+    const location = districts[hotelIndex % districts.length];
+    const district = districts[hotelIndex % districts.length];
+    const address = `${hotelIndex + 1}, Anna Salai, ${district}`;
+    const pincode = `600${String(hotelIndex).padStart(3, '0')}`;
     
+    // Instance 1: September 1-15, 2025
     hotelPromises.push(db.insert(hotels).values({
-      hotelId: `HOTEL-${String(i + 1).padStart(3, '0')}`,
-      instanceCode: 'A',
-      hotelName: `${hotelChains[i % hotelChains.length]} ${districts[i % districts.length]}`,
-      location: districts[i % districts.length],
-      district: districts[i % districts.length],
-      address: `${i + 1}, Anna Salai, ${districts[i % districts.length]}`,
-      pincode: `600${String(i).padStart(3, '0')}`,
-      startDate: startDate,
-      endDate: endDate,
-      totalRooms: 100 + (i * 10),
-      occupiedRooms: 20 + (i * 5),
-      availableRooms: 80 + (i * 5)
+      hotelId: baseHotelId,
+      instanceCode: '1',
+      hotelName,
+      location,
+      district,
+      address,
+      pincode,
+      startDate: new Date(2025, 8, 1), // September 1, 2025
+      endDate: new Date(2025, 8, 15), // September 15, 2025
+      totalRooms: 100 + (hotelIndex * 20),
+      occupiedRooms: 30 + (hotelIndex * 5),
+      availableRooms: 70 + (hotelIndex * 15)
     }));
+    
+    // Instance 2: September 20-30, 2025 (different date range)
+    hotelPromises.push(db.insert(hotels).values({
+      hotelId: baseHotelId,
+      instanceCode: '2',
+      hotelName,
+      location,
+      district,
+      address,
+      pincode,
+      startDate: new Date(2025, 8, 20), // September 20, 2025
+      endDate: new Date(2025, 8, 30), // September 30, 2025
+      totalRooms: 100 + (hotelIndex * 20),
+      occupiedRooms: 25 + (hotelIndex * 4),
+      availableRooms: 75 + (hotelIndex * 16)
+    }));
+    
+    // Instance 3: October 5-20, 2025 (for first 3 hotels only)
+    if (hotelIndex < 3) {
+      hotelPromises.push(db.insert(hotels).values({
+        hotelId: baseHotelId,
+        instanceCode: '3',
+        hotelName,
+        location,
+        district,
+        address,
+        pincode,
+        startDate: new Date(2025, 9, 5), // October 5, 2025
+        endDate: new Date(2025, 9, 20), // October 20, 2025
+        totalRooms: 100 + (hotelIndex * 20),
+        occupiedRooms: 40 + (hotelIndex * 6),
+        availableRooms: 60 + (hotelIndex * 14)
+      }));
+    }
   }
+  
   await Promise.all(hotelPromises);
   
   // 3. Create 5 coaches with user accounts
@@ -153,7 +195,8 @@ const quickGenerateData = async () => {
   console.log('   👥 Coaches: 5');
   console.log('   🏃‍♀️ Players: 50');
   console.log('   ⚖️ Officials: 5');
-  console.log('   🏨 Hotels: 10');
+  console.log('   🏨 Hotels: 5 unique hotels with 13 instances');
+  console.log('   📅 Date ranges: Sep 1-15, Sep 20-30, Oct 5-20');
   console.log('   📱 Total participants: 60');
   console.log('\n🔑 Admin Login: admin@ievolve.com / IevolveAdmin2025!');
   console.log('📱 Admin Mobile: +919344100312');

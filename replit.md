@@ -6,12 +6,13 @@ This is a comprehensive event management system built for the Ievolve Events org
 
 ## Recent Changes (August 2025)
 
-- **Fresh Test Data Generated**: Complete database refresh with realistic 2025 Chief Minister Trophy data including 986 coaches, 9234 students, 232 officials, and 164 hotels with proper relationships and current dates
+- **Fresh Test Data Generated**: Complete database refresh with realistic 2025 Chief Minister Trophy data including 5 coaches, 50 players, 5 officials, and 5 hotels with multiple instances (13 total) across different date ranges
 - **Cascading Hotel Updates**: Property-wide fields (address, location, pincode, district) now update across ALL instances of the same hotel while keeping room counts and dates instance-specific
 - **Auto +91 Country Code**: Team coach login automatically adds +91 country code prefix with visual indicators and 10-digit validation
 - **Custom Domain Support**: Added white-label error handling to hide Replit branding during server downtime with professional maintenance pages
 - **Mobile-Optimized iframe**: Enhanced iframe wrapper with server monitoring, auto-recovery, and mobile-responsive scaling for customer demonstrations
 - **Data Management Scripts**: Created cleanup and generation scripts for fresh test data with PSV export capabilities
+- **Hotel Instance System**: Implemented numeric instance codes (1, 2, 3, etc.) for same hotels with different booking date ranges, replacing alphabetic codes
 - **Hotel Edit Functionality**: Comprehensive hotel editing with date conflict validation, audit logging, and cascading property updates
 - **Professional Demo Setup**: Complete solution for customer demos using custom domains without exposing Replit infrastructure
 
