@@ -109,6 +109,42 @@ const quickGenerateData = async () => {
         availableRooms: 100 + (hotelIndex * 20)
       }));
     }
+    
+    // Instance 5: Currently active dates (August 1 - September 30, 2025)
+    if (hotelIndex < 3) {
+      hotelPromises.push(db.insert(hotels).values({
+        hotelId: baseHotelId,
+        instanceCode: '5',
+        hotelName,
+        location,
+        district,
+        address,
+        pincode,
+        startDate: new Date(2025, 7, 1), // August 1, 2025 (active now)
+        endDate: new Date(2025, 8, 30), // September 30, 2025 (active now)
+        totalRooms: 100 + (hotelIndex * 20),
+        occupiedRooms: 60 + (hotelIndex * 8), // High occupancy for active hotels
+        availableRooms: 40 + (hotelIndex * 12)
+      }));
+    }
+    
+    // Instance 6: Active dates spanning current period (August 10 - August 25, 2025)
+    if (hotelIndex === 0 || hotelIndex === 1) {
+      hotelPromises.push(db.insert(hotels).values({
+        hotelId: baseHotelId,
+        instanceCode: '6',
+        hotelName,
+        location,
+        district,
+        address,
+        pincode,
+        startDate: new Date(2025, 7, 10), // August 10, 2025 (active now)
+        endDate: new Date(2025, 7, 25), // August 25, 2025 (active now)
+        totalRooms: 100 + (hotelIndex * 20),
+        occupiedRooms: 75 + (hotelIndex * 5), // Very high occupancy for current active period
+        availableRooms: 25 + (hotelIndex * 15)
+      }));
+    }
   }
   
   await Promise.all(hotelPromises);
@@ -213,8 +249,11 @@ const quickGenerateData = async () => {
   console.log('   👥 Coaches: 5');
   console.log('   🏃‍♀️ Players: 50');
   console.log('   ⚖️ Officials: 5');
-  console.log('   🏨 Hotels: 5 unique hotels with 13 instances');
-  console.log('   📅 Date ranges: Sep 1-15, Sep 20-30, Oct 5-20');
+  console.log('   🏨 Hotels: 5 unique hotels with multiple instances');
+  console.log('   📅 Status examples:');
+  console.log('     • Active: Aug 1-Sep 30, Aug 10-25 (current dates)');
+  console.log('     • Upcoming: Sep 1-15, Sep 20-30, Oct 5-20');
+  console.log('     • Expired: Jul 1-15');
   console.log('   📱 Total participants: 60');
   console.log('\n🔑 Admin Login: admin@ievolve.com / IevolveAdmin2025!');
   console.log('📱 Admin Mobile: +919344100312');

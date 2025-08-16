@@ -13,6 +13,7 @@ This is a comprehensive event management system built for the Ievolve Events org
 - **Mobile-Optimized iframe**: Enhanced iframe wrapper with server monitoring, auto-recovery, and mobile-responsive scaling for customer demonstrations
 - **Data Management Scripts**: Created cleanup and generation scripts for fresh test data with PSV export capabilities
 - **Hotel Instance System**: Implemented numeric instance codes (1, 2, 3, etc.) for same hotels with different booking date ranges, replacing alphabetic codes
+- **Hotel Status Tracking**: Added real-time status calculation (active, upcoming, expired) based on current date vs hotel booking dates with filtering capabilities
 - **Hotel Edit Functionality**: Comprehensive hotel editing with date conflict validation, audit logging, and cascading property updates
 - **Professional Demo Setup**: Complete solution for customer demos using custom domains without exposing Replit infrastructure
 
