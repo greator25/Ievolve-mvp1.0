@@ -1,0 +1,16 @@
+participantId|name|mobileNumber|role|discipline|district|teamName|coachId|hotelId|hotelName|bookingStartDate|bookingEndDate|bookingReference|checkinStatus
+COACH-00001|Coach 1|+919344200001|coach|Athletics|Chennai|Chennai Athletics Team||HOTEL-001|ITC Chennai|2025-09-01|2025-09-15|BK-COACH-00001|pending
+COACH-00002|Coach 2|+919344200002|coach|Swimming|Coimbatore|Coimbatore Swimming Team||HOTEL-002|Taj Coimbatore|2025-09-01|2025-09-15|BK-COACH-00002|pending
+COACH-00003|Coach 3|+919344200003|coach|Basketball|Madurai|Madurai Basketball Team||HOTEL-003|Marriott Madurai|2025-09-01|2025-09-15|BK-COACH-00003|pending
+COACH-00004|Coach 4|+919344200004|coach|Football|Salem|Salem Football Team||HOTEL-004|Hyatt Salem|2025-09-01|2025-09-15|BK-COACH-00004|pending
+COACH-00005|Coach 5|+919344200005|coach|Cricket|Tirunelveli|Tirunelveli Cricket Team||HOTEL-005|Radisson Tirunelveli|2025-09-01|2025-09-15|BK-COACH-00005|pending
+CM2025-001000|Player 1|+919344200006|player|Athletics|Chennai|Chennai Athletics Team|COACH-00001|HOTEL-001|ITC Chennai|2025-09-01|2025-09-15|BK-PLAYER-1|checked_in
+CM2025-001001|Player 2|+919344200007|player|Swimming|Coimbatore|Coimbatore Swimming Team|COACH-00002|HOTEL-002|Taj Coimbatore|2025-09-01|2025-09-15|BK-PLAYER-2|pending
+CM2025-001002|Player 3|+919344200008|player|Basketball|Madurai|Madurai Basketball Team|COACH-00003|HOTEL-003|Marriott Madurai|2025-09-01|2025-09-15|BK-PLAYER-3|checked_in
+CM2025-001003|Player 4|+919344200009|player|Football|Salem|Salem Football Team|COACH-00004|HOTEL-004|Hyatt Salem|2025-09-01|2025-09-15|BK-PLAYER-4|pending
+CM2025-001004|Player 5|+919344200010|player|Cricket|Tirunelveli|Tirunelveli Cricket Team|COACH-00005|HOTEL-005|Radisson Tirunelveli|2025-09-01|2025-09-15|BK-PLAYER-5|checked_in
+OFF-001|Official 1|+919344200051|official|Athletics|Chennai|Official - Athletics||HOTEL-001|ITC Chennai|2025-09-01|2025-09-15|BK-OFF-1|pending
+OFF-002|Official 2|+919344200052|official|Swimming|Coimbatore|Official - Swimming||HOTEL-002|Taj Coimbatore|2025-09-01|2025-09-15|BK-OFF-2|pending
+OFF-003|Official 3|+919344200053|official|Basketball|Madurai|Official - Basketball||HOTEL-003|Marriott Madurai|2025-09-01|2025-09-15|BK-OFF-3|pending
+OFF-004|Official 4|+919344200054|official|Football|Salem|Official - Football||HOTEL-004|Hyatt Salem|2025-09-01|2025-09-15|BK-OFF-4|pending
+OFF-005|Official 5|+919344200055|official|Cricket|Tirunelveli|Official - Cricket||HOTEL-005|Radisson Tirunelveli|2025-09-01|2025-09-15|BK-OFF-5|pending

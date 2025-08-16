@@ -1,0 +1,11 @@
+hotelId|instanceCode|hotelName|location|district|address|pincode|startDate|endDate|totalRooms|occupiedRooms|availableRooms
+HOTEL-001|A|ITC Chennai|Chennai|Chennai|1, Anna Salai, Chennai|600000|2025-09-01|2025-09-15|100|20|80
+HOTEL-002|A|Taj Coimbatore|Coimbatore|Coimbatore|2, Anna Salai, Coimbatore|600001|2025-09-01|2025-09-15|110|25|85
+HOTEL-003|A|Marriott Madurai|Madurai|Madurai|3, Anna Salai, Madurai|600002|2025-09-01|2025-09-15|120|30|90
+HOTEL-004|A|Hyatt Salem|Salem|Salem|4, Anna Salai, Salem|600003|2025-09-01|2025-09-15|130|35|95
+HOTEL-005|A|Radisson Tirunelveli|Tirunelveli|Tirunelveli|5, Anna Salai, Tirunelveli|600004|2025-09-01|2025-09-15|140|40|100
+HOTEL-006|A|ITC Chennai|Chennai|Chennai|6, Anna Salai, Chennai|600005|2025-09-01|2025-09-15|150|45|105
+HOTEL-007|A|Taj Coimbatore|Coimbatore|Coimbatore|7, Anna Salai, Coimbatore|600006|2025-09-01|2025-09-15|160|50|110
+HOTEL-008|A|Marriott Madurai|Madurai|Madurai|8, Anna Salai, Madurai|600007|2025-09-01|2025-09-15|170|55|115
+HOTEL-009|A|Hyatt Salem|Salem|Salem|9, Anna Salai, Salem|600008|2025-09-01|2025-09-15|180|60|120
+HOTEL-010|A|Radisson Tirunelveli|Tirunelveli|Tirunelveli|10, Anna Salai, Tirunelveli|600009|2025-09-01|2025-09-15|190|65|125

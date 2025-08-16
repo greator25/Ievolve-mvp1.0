@@ -4,15 +4,16 @@
 
 This is a comprehensive event management system built for the Ievolve Events organization. The application manages hotel accommodations, participant check-ins/check-outs, and team coordination for sports events. It features role-based access control with Admin and Team Coach dashboards, file upload capabilities for data management, and real-time notification systems. The system is designed to handle large-scale sporting events with multiple hotels, teams, and participants across different disciplines and locations.
 
-## Recent Changes (January 2025)
+## Recent Changes (August 2025)
 
-- **Hotel Edit Functionality**: Implemented comprehensive hotel editing with backend API endpoints, date conflict validation, audit logging, and user-friendly modal interface for all admins to modify hotel details
-- **Logout Button Enhancement**: Added explicit logout buttons with clear labeling and red styling to both admin and coach dashboards with proper redirection to role selection page
-- **Google Cloud Deployment Ready**: Complete deployment configuration including Dockerfile, Cloud Build, Cloud SQL setup, and automated deployment scripts for Google Cloud Platform
-- **Hotel Management Table View**: Converted hotel inventory from individual cards to a comprehensive table layout with advanced filtering, search capabilities, and better data organization
-- **Coach Authentication Fix**: Resolved data consistency issues between users and participants tables, normalized mobile number formats (+91 prefix), and enhanced upload system validation
-- **Context-Aware Upload Modals**: Upload modals now pre-select appropriate data types based on the current tab/section being viewed
-- **Duplicate UI Element Cleanup**: Removed redundant close buttons and cleaned up modal interfaces
+- **Fresh Test Data Generated**: Complete database refresh with realistic 2025 Chief Minister Trophy data including 986 coaches, 9234 students, 232 officials, and 164 hotels with proper relationships and current dates
+- **Cascading Hotel Updates**: Property-wide fields (address, location, pincode, district) now update across ALL instances of the same hotel while keeping room counts and dates instance-specific
+- **Auto +91 Country Code**: Team coach login automatically adds +91 country code prefix with visual indicators and 10-digit validation
+- **Custom Domain Support**: Added white-label error handling to hide Replit branding during server downtime with professional maintenance pages
+- **Mobile-Optimized iframe**: Enhanced iframe wrapper with server monitoring, auto-recovery, and mobile-responsive scaling for customer demonstrations
+- **Data Management Scripts**: Created cleanup and generation scripts for fresh test data with PSV export capabilities
+- **Hotel Edit Functionality**: Comprehensive hotel editing with date conflict validation, audit logging, and cascading property updates
+- **Professional Demo Setup**: Complete solution for customer demos using custom domains without exposing Replit infrastructure
 
 ## User Preferences
 
