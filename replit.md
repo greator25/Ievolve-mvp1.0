@@ -16,6 +16,8 @@ This is a comprehensive event management system built for the Ievolve Events org
 - **Hotel Status Tracking**: Added real-time status calculation (active, upcoming, expired) based on current date vs hotel booking dates with filtering capabilities
 - **Hotel Edit Functionality**: Comprehensive hotel editing with date conflict validation, audit logging, and cascading property updates
 - **Professional Demo Setup**: Complete solution for customer demos using custom domains without exposing Replit infrastructure
+- **Manual Hotel Addition**: Dual-mode system with "New Hotel" and "Add Instance" options, smart validation, auto-population, and form reset functionality
+- **Comprehensive Data Format Guide**: Created detailed PSV format specification with validation rules for hotel data uploads
 
 ## User Preferences
 
