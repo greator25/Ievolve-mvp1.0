@@ -385,13 +385,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startDate = updates.startDate;
       const endDate = updates.endDate;
 
-      // Check for date conflicts with other instances of the same hotel
-      const conflictingHotels = await storage.checkHotelDateConflicts(
-        originalHotel.hotelId,
-        originalHotel.instanceCode,
-        startDate,
-        endDate
+      // Only check for date conflicts if dates are actually being changed
+      const datesChanged = (
+        startDate.getTime() !== new Date(originalHotel.startDate).getTime() ||
+        endDate.getTime() !== new Date(originalHotel.endDate).getTime()
       );
+
+      let conflictingHotels: any[] = [];
+      if (datesChanged) {
+        conflictingHotels = await storage.checkHotelDateConflicts(
+          originalHotel.hotelId,
+          originalHotel.instanceCode,
+          startDate,
+          endDate
+        );
+      }
 
       if (conflictingHotels.length > 0) {
         const conflictDetails = conflictingHotels.map(h => {
