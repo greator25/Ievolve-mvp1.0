@@ -120,6 +120,9 @@ export class AuthService {
     const message = formatOTPMessage(otp, purpose);
     const result = await sendSMS(phoneNumber, message);
 
+    // Always log OTP to console for testing
+    console.log(`🔑 ${purpose.toUpperCase()} OTP: ${otp} (for ${phoneNumber})`);
+
     if (!result.success) {
       throw new Error(`Failed to send OTP: ${result.error}`);
     }
