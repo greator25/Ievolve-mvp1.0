@@ -109,7 +109,8 @@
         title="Ievolve Event Management System"
         allow="camera; microphone; geolocation"
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
-        loading="lazy">
+        loading="lazy"
+        onerror="handleIframeError()">
     </iframe>
     
     <div id="loading">Loading Event Management System...</div>
@@ -117,10 +118,121 @@
     <button id="fullscreen-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
     
     <script>
+        let serverCheckInterval;
+        let errorShown = false;
+        
         // Remove loading indicator when iframe loads
         document.getElementById('app-frame').onload = function() {
             this.classList.add('loaded');
+            errorShown = false;
+            clearInterval(serverCheckInterval);
         };
+        
+        // Handle iframe loading errors
+        function handleIframeError() {
+            if (!errorShown) {
+                showErrorPage();
+            }
+        }
+        
+        // Check if server is responding
+        function checkServerStatus() {
+            fetch('https://d698c84b-fbd4-42e1-8652-8b92c3450c5f-00-jk2pa9a1bwct.riker.replit.dev/api/auth/me', {
+                method: 'GET',
+                mode: 'no-cors'
+            })
+            .then(() => {
+                // Server is responding, reload iframe if it was showing error
+                if (errorShown) {
+                    location.reload();
+                }
+            })
+            .catch(() => {
+                // Server not responding
+                if (!errorShown) {
+                    showErrorPage();
+                }
+            });
+        }
+        
+        // Show custom error page instead of Replit error
+        function showErrorPage() {
+            errorShown = true;
+            document.body.innerHTML = `
+                <div style="
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    margin: 0;
+                ">
+                    <div style="
+                        background: white;
+                        border-radius: 12px;
+                        padding: 40px;
+                        max-width: 500px;
+                        width: 100%;
+                        text-align: center;
+                        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                    ">
+                        <div style="
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            color: white;
+                            padding: 15px 30px;
+                            border-radius: 8px;
+                            font-size: 18px;
+                            font-weight: bold;
+                            margin-bottom: 30px;
+                            display: inline-block;
+                        ">IEVOLVE EVENT MANAGEMENT</div>
+                        
+                        <h1 style="color: #333; font-size: 28px; margin-bottom: 15px;">System Maintenance</h1>
+                        <div style="color: #666; font-size: 18px; margin-bottom: 30px;">Chief Minister Trophy - Tamil Nadu</div>
+                        
+                        <div style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                            Our event management system is temporarily unavailable. We're working to restore service.
+                        </div>
+                        
+                        <button onclick="location.reload()" style="
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            margin-right: 15px;
+                        ">Try Again</button>
+                        
+                        <div style="margin-top: 20px; color: #888; font-size: 14px;">
+                            Automatically retrying in <span id="countdown">30</span> seconds...
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Auto-retry countdown
+            let countdown = 30;
+            const countdownEl = document.getElementById('countdown');
+            const interval = setInterval(() => {
+                countdown--;
+                if (countdownEl) countdownEl.textContent = countdown;
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    location.reload();
+                }
+            }, 1000);
+        }
+        
+        // Start monitoring server status
+        serverCheckInterval = setInterval(checkServerStatus, 15000); // Check every 15 seconds
+        
+        // Initial check after 3 seconds
+        setTimeout(checkServerStatus, 3000);
         
         // Fullscreen functionality for mobile
         function toggleFullscreen() {
