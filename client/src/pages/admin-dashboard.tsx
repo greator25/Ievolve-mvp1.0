@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [addHotelModalOpen, setAddHotelModalOpen] = useState(false);
+  const [hotelAddMode, setHotelAddMode] = useState<"new" | "instance">("new");
   const [uploadType, setUploadType] = useState<"hotel_inventory" | "coaches_officials" | "players" | "">("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -512,6 +513,8 @@ export default function AdminDashboard() {
       <AddHotelModal
         open={addHotelModalOpen}
         onOpenChange={setAddHotelModalOpen}
+        mode={hotelAddMode}
+        onModeChange={setHotelAddMode}
       />
     </div>
   );

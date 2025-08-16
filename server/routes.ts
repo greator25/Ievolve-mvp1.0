@@ -416,6 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/hotels", requireAdmin, async (req, res) => {
     try {
       console.log('Manual hotel creation request:', req.body);
+      const { mode } = req.body;
       
       // Validate the request body
       const hotelData = {
@@ -481,7 +482,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           targetEntity: 'hotel',
           targetId: newHotel.id,
           details: {
-            action: 'manual_hotel_creation',
+            action: mode === 'new' ? 'manual_hotel_creation' : 'manual_instance_creation',
+            mode: mode,
             hotelId: hotelData.hotelId,
             instanceCode: instanceCode,
             hotelName: hotelData.hotelName,

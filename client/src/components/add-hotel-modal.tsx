@@ -51,9 +51,11 @@ type AddHotelForm = z.infer<typeof addHotelSchema>;
 interface AddHotelModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode?: "new" | "instance";
+  onModeChange?: (mode: "new" | "instance") => void;
 }
 
-export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps) {
+export default function AddHotelModal({ open, onOpenChange, mode = "new", onModeChange }: AddHotelModalProps) {
   const [hotelIdToCheck, setHotelIdToCheck] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -91,8 +93,8 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
     },
     enabled: !!hotelIdToCheck && hotelIdToCheck.length > 0,
     onSuccess: (data) => {
-      // Auto-populate fields if hotel exists
-      if (data?.exists && data.existingInstances?.length > 0) {
+      // Auto-populate fields if in instance mode and hotel exists
+      if (mode === "instance" && data?.exists && data.existingInstances?.length > 0) {
         const firstInstance = data.existingInstances[0];
         form.setValue("hotelName", firstInstance.hotelName || "");
         form.setValue("location", firstInstance.location || "");
@@ -143,7 +145,26 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
   };
 
   const onSubmit = (data: AddHotelForm) => {
-    addHotelMutation.mutate(data);
+    // Validate based on mode
+    if (mode === "new" && hotelCheckResult?.exists) {
+      toast({
+        title: "Error",
+        description: "Hotel ID already exists. Use 'Add Instance' mode or choose a different ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (mode === "instance" && !hotelCheckResult?.exists) {
+      toast({
+        title: "Error", 
+        description: "Hotel ID not found. Use 'New Hotel' mode to create a new hotel.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    addHotelMutation.mutate({ ...data, mode });
   };
 
   return (
@@ -152,9 +173,29 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Building className="h-5 w-5" />
-            <span>Add New Hotel</span>
+            <span>{mode === "new" ? "Add New Hotel" : "Add Hotel Instance"}</span>
           </DialogTitle>
         </DialogHeader>
+
+        {/* Mode Selection */}
+        <div className="flex space-x-2 p-4 bg-gray-50 rounded-lg">
+          <Button
+            variant={mode === "new" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onModeChange?.("new")}
+            data-testid="button-mode-new"
+          >
+            New Hotel
+          </Button>
+          <Button
+            variant={mode === "instance" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onModeChange?.("instance")}
+            data-testid="button-mode-instance"
+          >
+            Add Instance
+          </Button>
+        </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -190,27 +231,43 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                       </div>
                     ) : hotelCheckResult ? (
                       <div className="space-y-2">
-                        {hotelCheckResult.exists ? (
-                          <div className="flex items-center space-x-2 text-blue-600">
-                            <AlertCircle className="h-4 w-4" />
-                            <span className="text-sm font-medium">Hotel ID exists</span>
-                          </div>
+                        {/* Status based on mode */}
+                        {mode === "new" ? (
+                          hotelCheckResult.exists ? (
+                            <div className="flex items-center space-x-2 text-red-600">
+                              <AlertCircle className="h-4 w-4" />
+                              <span className="text-sm font-medium">Hotel ID already exists. Switch to 'Add Instance' mode.</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2 text-green-600">
+                              <CheckCircle className="h-4 w-4" />
+                              <span className="text-sm font-medium">Hotel ID available for new hotel</span>
+                            </div>
+                          )
                         ) : (
-                          <div className="flex items-center space-x-2 text-green-600">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="text-sm font-medium">Hotel ID available</span>
-                          </div>
+                          hotelCheckResult.exists ? (
+                            <div className="flex items-center space-x-2 text-green-600">
+                              <CheckCircle className="h-4 w-4" />
+                              <span className="text-sm font-medium">Hotel found. Ready to add instance.</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2 text-red-600">
+                              <AlertCircle className="h-4 w-4" />
+                              <span className="text-sm font-medium">Hotel ID not found. Switch to 'New Hotel' mode.</span>
+                            </div>
+                          )
                         )}
                         
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Suggested Instance Code: </span>
-                          <Badge variant="outline" className="ml-1">
-                            {hotelCheckResult.suggestedInstanceCode}
-                          </Badge>
-                        </div>
-                        
-                        {hotelCheckResult.existingInstances && hotelCheckResult.existingInstances.length > 0 && (
+                        {/* Instance information for existing hotels */}
+                        {hotelCheckResult.exists && (
                           <div className="space-y-2">
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">Next Instance Code: </span>
+                              <Badge variant="outline" className="ml-1">
+                                {hotelCheckResult.suggestedInstanceCode}
+                              </Badge>
+                            </div>
+                            
                             <div className="text-sm text-gray-600">
                               <span className="font-medium">Existing Instances: </span>
                               {hotelCheckResult.existingInstances.map((instance: any, index: number) => (
@@ -220,20 +277,19 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                               ))}
                             </div>
                             
-                            {/* Date Summary */}
+                            {/* Instance Details Table */}
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                               <div className="text-sm">
-                                <span className="font-medium text-blue-800">Date Range Summary:</span>
-                                <div className="mt-1 text-blue-700">
-                                  <span className="block">
-                                    <strong>Earliest Start:</strong> {new Date(hotelCheckResult.earliestStart).toLocaleDateString()}
-                                  </span>
-                                  <span className="block">
-                                    <strong>Latest End:</strong> {new Date(hotelCheckResult.latestEnd).toLocaleDateString()}
-                                  </span>
+                                <span className="font-medium text-blue-800">Instance Details:</span>
+                                <div className="mt-2 space-y-1">
+                                  {hotelCheckResult.existingInstances.map((instance: any, index: number) => (
+                                    <div key={index} className="text-blue-700 text-xs">
+                                      <span className="font-medium">Instance {instance.instanceCode}:</span> {new Date(instance.startDate).toLocaleDateString()} - {new Date(instance.endDate).toLocaleDateString()}
+                                    </div>
+                                  ))}
                                 </div>
                                 <div className="mt-2 text-xs text-blue-600">
-                                  Choose dates that don't overlap with existing instances to avoid conflicts.
+                                  Choose dates that don't overlap with existing instances.
                                 </div>
                               </div>
                             </div>
@@ -248,6 +304,7 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
 
             {/* Basic Hotel Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Show all fields for new mode, limited fields for instance mode */}
               <FormField
                 control={form.control}
                 name="hotelName"
@@ -255,7 +312,12 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                   <FormItem>
                     <FormLabel>Hotel Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Hotel name" {...field} data-testid="input-hotel-name" />
+                      <Input 
+                        placeholder="Hotel name" 
+                        {...field} 
+                        disabled={mode === "instance" && hotelCheckResult?.exists}
+                        data-testid="input-hotel-name" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -269,7 +331,12 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="Location" {...field} data-testid="input-location" />
+                      <Input 
+                        placeholder="Location" 
+                        {...field} 
+                        disabled={mode === "instance" && hotelCheckResult?.exists}
+                        data-testid="input-location" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -283,7 +350,12 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                   <FormItem>
                     <FormLabel>District</FormLabel>
                     <FormControl>
-                      <Input placeholder="District" {...field} data-testid="input-district" />
+                      <Input 
+                        placeholder="District" 
+                        {...field} 
+                        disabled={mode === "instance" && hotelCheckResult?.exists}
+                        data-testid="input-district" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -297,7 +369,12 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                   <FormItem>
                     <FormLabel>Pincode</FormLabel>
                     <FormControl>
-                      <Input placeholder="Pincode" {...field} data-testid="input-pincode" />
+                      <Input 
+                        placeholder="Pincode" 
+                        {...field} 
+                        disabled={mode === "instance" && hotelCheckResult?.exists}
+                        data-testid="input-pincode" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -313,7 +390,12 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                 <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="Full address" {...field} data-testid="input-address" />
+                    <Input 
+                      placeholder="Full address" 
+                      {...field} 
+                      disabled={mode === "instance" && hotelCheckResult?.exists}
+                      data-testid="input-address" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -322,13 +404,13 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
 
             {/* Date Range */}
             <div className="space-y-4">
-              {/* Date Guidance for existing hotels */}
-              {hotelCheckResult?.exists && (
+              {/* Date Guidance for instance mode */}
+              {mode === "instance" && hotelCheckResult?.exists && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                   <div className="text-sm text-amber-800">
                     <strong>⚠️ Date Conflict Prevention:</strong>
                     <div className="mt-1 text-amber-700">
-                      Ensure your dates don't overlap with existing instances. Existing date range spans from{" "}
+                      Ensure your dates don't overlap with existing instances. Overall date range spans from{" "}
                       <strong>{new Date(hotelCheckResult.earliestStart).toLocaleDateString()}</strong> to{" "}
                       <strong>{new Date(hotelCheckResult.latestEnd).toLocaleDateString()}</strong>.
                     </div>
