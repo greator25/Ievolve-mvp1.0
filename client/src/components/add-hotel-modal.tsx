@@ -90,6 +90,19 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
       return await response.json();
     },
     enabled: !!hotelIdToCheck && hotelIdToCheck.length > 0,
+    onSuccess: (data) => {
+      // Auto-populate fields if hotel exists
+      if (data?.exists && data.existingInstances?.length > 0) {
+        const firstInstance = data.existingInstances[0];
+        form.setValue("hotelName", firstInstance.hotelName || "");
+        form.setValue("location", firstInstance.location || "");
+        form.setValue("district", firstInstance.district || "");
+        form.setValue("address", firstInstance.address || "");
+        form.setValue("pincode", firstInstance.pincode || "");
+        form.setValue("pointOfContact", firstInstance.pointOfContact || "");
+        form.setValue("contactPhoneNumber", firstInstance.contactPhoneNumber || "");
+      }
+    },
   });
 
   const addHotelMutation = useMutation({
@@ -197,13 +210,33 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
                         </div>
                         
                         {hotelCheckResult.existingInstances && hotelCheckResult.existingInstances.length > 0 && (
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">Existing Instances: </span>
-                            {hotelCheckResult.existingInstances.map((instance: any, index: number) => (
-                              <Badge key={index} variant="secondary" className="ml-1">
-                                {instance.instanceCode}
-                              </Badge>
-                            ))}
+                          <div className="space-y-2">
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">Existing Instances: </span>
+                              {hotelCheckResult.existingInstances.map((instance: any, index: number) => (
+                                <Badge key={index} variant="secondary" className="ml-1">
+                                  {instance.instanceCode}
+                                </Badge>
+                              ))}
+                            </div>
+                            
+                            {/* Date Summary */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                              <div className="text-sm">
+                                <span className="font-medium text-blue-800">Date Range Summary:</span>
+                                <div className="mt-1 text-blue-700">
+                                  <span className="block">
+                                    <strong>Earliest Start:</strong> {new Date(hotelCheckResult.earliestStart).toLocaleDateString()}
+                                  </span>
+                                  <span className="block">
+                                    <strong>Latest End:</strong> {new Date(hotelCheckResult.latestEnd).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="mt-2 text-xs text-blue-600">
+                                  Choose dates that don't overlap with existing instances to avoid conflicts.
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -288,34 +321,50 @@ export default function AddHotelModal({ open, onOpenChange }: AddHotelModalProps
             />
 
             {/* Date Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} data-testid="input-start-date" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="space-y-4">
+              {/* Date Guidance for existing hotels */}
+              {hotelCheckResult?.exists && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <div className="text-sm text-amber-800">
+                    <strong>⚠️ Date Conflict Prevention:</strong>
+                    <div className="mt-1 text-amber-700">
+                      Ensure your dates don't overlap with existing instances. Existing date range spans from{" "}
+                      <strong>{new Date(hotelCheckResult.earliestStart).toLocaleDateString()}</strong> to{" "}
+                      <strong>{new Date(hotelCheckResult.latestEnd).toLocaleDateString()}</strong>.
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} data-testid="input-start-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} data-testid="input-end-date" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} data-testid="input-end-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Room Information */}

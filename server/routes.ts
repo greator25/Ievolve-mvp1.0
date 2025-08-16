@@ -378,12 +378,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const maxInstanceCode = existingInstanceCodes.length > 0 ? Math.max(...existingInstanceCodes) : 0;
       const suggestedInstanceCode = maxInstanceCode + 1;
 
+      // Calculate date range summary
+      let earliestStart = null;
+      let latestEnd = null;
+      if (existingHotels.length > 0) {
+        const startDates = existingHotels.map((h: any) => new Date(h.startDate));
+        const endDates = existingHotels.map((h: any) => new Date(h.endDate));
+        earliestStart = new Date(Math.min(...startDates.map(d => d.getTime())));
+        latestEnd = new Date(Math.max(...endDates.map(d => d.getTime())));
+      }
+
       res.json({
         exists,
         suggestedInstanceCode: suggestedInstanceCode.toString(),
+        earliestStart,
+        latestEnd,
         existingInstances: existingHotels.map((h: any) => ({
           id: h.id,
           instanceCode: h.instanceCode,
+          hotelName: h.hotelName,
+          location: h.location,
+          district: h.district,
+          address: h.address,
+          pincode: h.pincode,
+          pointOfContact: h.pointOfContact,
+          contactPhoneNumber: h.contactPhoneNumber,
           startDate: h.startDate,
           endDate: h.endDate
         }))
